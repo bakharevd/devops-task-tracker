@@ -5,8 +5,8 @@
 
 # Технологический стек
 ## Backend
-- Python 3.12
-- Django 5.0
+- Python 3.11
+- Django 5.2
 - Django REST Framework
 - Simple JWT
 - PostgreSQL
