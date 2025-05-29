@@ -1,0 +1,20 @@
+# General
+__pycache__/
+*.pyc
+.env
+.idea
+
+# Django
+backend/staticfiles/
+backend/**/*.pyc
+backend/**/migrations/
+backend/.venv/
+
+# Vue
+frontend/node_modules/
+frontend/dist/
+frontend/*.env
+frontend/.vscode
+
+# Docker
+docker-compose.override.yml
