@@ -1,9 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import TaskViewSet, StatusViewSet, PriorityViewSet
+from .views import TaskViewSet, StatusViewSet, PriorityViewSet, ProjectViewSet
 
 router = DefaultRouter()
+router.register(r'projects', ProjectViewSet, basename='projects')
 router.register(r'tasks', TaskViewSet, basename='tasks')
 router.register(r'statuses', StatusViewSet, basename='statuses')
 router.register(r'priorities', PriorityViewSet, basename='priorities')

@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Status, Priority, Task
+from .models import Status, Priority, Task, Project
+
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'created_at', 'updated_at')
+    search_fields = ('name',)
+    ordering = ('name',)
 
 
 @admin.register(Status)
@@ -20,11 +27,11 @@ class PriorityAdmin(admin.ModelAdmin):
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'title', 'creator', 'assignee', 'status', 'priority', 'created_at', 'due_date'
+        'id', 'title', 'project', 'creator', 'assignee', 'status', 'priority', 'created_at', 'due_date'
     )
-    list_filter = ('status', 'priority', 'creator', 'assignee')
+    list_filter = ('project', 'status', 'priority', 'creator', 'assignee')
     search_fields = ('title', 'description')
     ordering = ('-created_at',)
 
-    raw_id_fields = ('creator', 'assignee')
+    raw_id_fields = ('creator', 'assignee', 'project')
     autocomplete_fields = ('status', 'priority')

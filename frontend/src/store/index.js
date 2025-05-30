@@ -41,7 +41,7 @@ export const useAuthStore = defineStore('auth', {
                 })
                 this.user = response.data
             } catch (error) {
-                this.logout()
+                await this.logout()
                 throw error
             }
         },
@@ -53,7 +53,7 @@ export const useAuthStore = defineStore('auth', {
                 this.accessToken = response.data.access
                 localStorage.setItem('access_token', this.accessToken)
             } catch (error) {
-                this.logout()
+                await this.logout()
                 throw error
             }
         }
@@ -64,7 +64,9 @@ export const useTaskStore = defineStore('tasks', {
     state: () => ({
         tasks: [],
         statuses: [],
-        priorities: []
+        priorities: [],
+        projects: [],
+        currentProjectId: 'all'
     }),
     actions: {
         async fetchInitialData() {
@@ -72,28 +74,31 @@ export const useTaskStore = defineStore('tasks', {
             const headers = {
                 Authorization: `Bearer ${authStore.accessToken}`
             }
-            const [statusesRes, prioritiesRes] = await Promise.all([
+            const [statusesRes, prioritiesRes, projectsRes] = await Promise.all([
                 axios.get(`${API_URL}/tasks/statuses/`, {headers}),
-                axios.get(`${API_URL}/tasks/priorities`, {headers})
+                axios.get(`${API_URL}/tasks/priorities`, {headers}),
+                axios.get(`${API_URL}/tasks/projects/`, {headers})
             ])
             this.statuses = statusesRes.data
             this.priorities = prioritiesRes.data
+            this.projects = projectsRes.data
         },
-        async fetchTasks() {
+        async fetchTasks(projectId = 'all') {
             const authStore = useAuthStore()
             const headers = {
                 Authorization: `Bearer ${authStore.accessToken}`
             }
-            const response = await axios.get(`${API_URL}/tasks/tasks/`, {headers})
+            const response = await axios.get(`${API_URL}/tasks/tasks/?project=${projectId}`, {headers})
             this.tasks = response.data
+            this.currentProjectId = projectId
         },
         async createTask(taskData) {
             const authStore = useAuthStore()
             const headers = {
                 Authorization: `Bearer ${authStore.accessToken}`
             }
-            const response = await axios.post(`${API_URL}/tasks/tasks/`, taskData, {headers})
-            await this.fetchTasks()
+            await axios.post(`${API_URL}/tasks/tasks/`, taskData, {headers})
+            await this.fetchTasks(this.currentProjectId)
         },
         async updateTask(id, taskData) {
             const authStore = useAuthStore()
@@ -101,15 +106,47 @@ export const useTaskStore = defineStore('tasks', {
                 Authorization: `Bearer ${authStore.accessToken}`
             }
             await axios.patch(`${API_URL}/tasks/tasks/${id}`, taskData, {headers})
-            await this.fetchTasks()
+            await this.fetchTasks(this.currentProjectId)
         },
         async deleteTask(id) {
             const authStore = useAuthStore()
             const headers = {
                 Authorization: `Bearer ${authStore.accessToken}`
             }
-            const response = await axios.delete(`${API_URL}/tasks/tasks/${id}/`, {headers})
-            await this.fetchTasks()
+            await axios.delete(`${API_URL}/tasks/tasks/${id}/`, {headers})
+            await this.fetchTasks(this.currentProjectId)
+        },
+        async fetchProjects() {
+            const authStore = useAuthStore()
+            const headers = {
+                Authorization: `Bearer ${authStore.accessToken}`
+            }
+            const response = await axios.get(`${API_URL}/tasks/projects/`, {headers})
+            this.projects = response.data
+        },
+        async createProject(projectData) {
+            const authStore = useAuthStore()
+            const headers = {
+                Authorization: `Bearer ${authStore.accessToken}`
+            }
+            await axios.post(`${API_URL}/tasks/projects/`, projectData, {headers})
+            await this.fetchProjects()
+        },
+        async updateProject(id, projectData) {
+            const authStore = useAuthStore()
+            const headers = {
+                Authorization: `Bearer ${authStore.accessToken}`
+            }
+            await axios.patch(`${API_URL}/tasks/projects/${id}/`, projectData, {headers})
+            await this.fetchProjects()
+        },
+        async deleteProject(id) {
+            const authStore = useAuthStore()
+            const headers = {
+                Authorization: `Bearer ${authStore.accessToken}`
+            }
+            await axios.delete(`${API_URL}/tasks/projects/${id}/`, {headers})
+            await this.fetchProjects()
         }
     }
 })

@@ -109,6 +109,8 @@ tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache_
     │   ├── App.vue
     │   ├── components
     │   │   ├── LoginForm.vue
+    │   │   ├── ProjectForm.vue
+    │   │   ├── ProjectList.vue
     │   │   ├── TaskForm.vue
     │   │   ├── TaskList.vue
     │   │   └── layouts
@@ -122,7 +124,7 @@ tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache_
     │       └── index.js
     └── vite.config.js
 
-17 directories, 43 files
+17 directories, 45 files
 ```
 
 # Авторизация и роли
@@ -135,3 +137,5 @@ tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache_
 - Кнопка "Просмотреть сайт" ведёт на /tasks
 
 > Проект разработан с учётом расширяемости и дальнейшего масштабирования. Подходит как для демонстрации, так и для боевого использования внутри команды DevOps.
+
+

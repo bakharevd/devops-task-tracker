@@ -2,6 +2,24 @@ from django.conf import settings
 from django.db import models
 
 
+class Project(models.Model):
+    """
+    Сущность Проекты
+    """
+    name = models.CharField(max_length=150, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Проект'
+        verbose_name_plural = 'Проекты'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Status(models.Model):
     """
     Справочник статусов
@@ -51,6 +69,11 @@ class Task(models.Model):
         null=True,
         blank=True,
         related_name='assigned_tasks'
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='tasks'
     )
     status = models.ForeignKey(
         Status,

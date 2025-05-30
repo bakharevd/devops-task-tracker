@@ -1,5 +1,5 @@
 <template>
-    <HeaderLayout />
+    <HeaderLayout/>
     <router-view/>
 </template>
 
@@ -19,5 +19,14 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+button {
+    font-family: inherit;
 }
 </style>

@@ -1,9 +1,15 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Task, Status, Priority
+from .models import Task, Status, Priority, Project
 
 User = get_user_model()
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
 
 
 class StatusSerializer(serializers.ModelSerializer):
@@ -25,6 +31,12 @@ class TaskSerializer(serializers.ModelSerializer):
         allow_null=True,
         required=False
     )
+    project = ProjectSerializer(read_only=True)
+    project_id = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        write_only=True,
+        source='project'
+    )
     status = serializers.PrimaryKeyRelatedField(
         queryset=Status.objects.all()
     )
@@ -43,10 +55,12 @@ class TaskSerializer(serializers.ModelSerializer):
             'due_date',
             'creator',
             'assignee',
+            'project',
+            'project_id',
             'status',
             'priority'
         ]
-        read_only_fields = ['id', 'created_at', 'creator']
+        read_only_fields = ['id', 'created_at', 'creator', 'project']
 
     def create(self, validated_data):
         request = self.context.get('request')

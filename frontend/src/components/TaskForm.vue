@@ -4,145 +4,221 @@
         <form @submit.prevent="onSubmit">
             <div>
                 <label for="title">Заголовок:</label>
-                <input v-model="form.title" type="text" id="title" required/>
+                <input
+                    v-model="form.title"
+                    type="text"
+                    id="title"
+                    placeholder="Укажите краткий заголовок"
+                    required
+                />
             </div>
+
             <div>
                 <label for="description">Описание:</label>
-                <textarea v-model="form.description" id="description"></textarea>
+                <textarea
+                    v-model="form.description"
+                    id="description"
+                    placeholder="Подробное описание (опционально)"
+                ></textarea>
             </div>
+
+            <div>
+                <label for="project">Проект:</label>
+                <select v-model="form.project_id" id="project" required>
+                    <option disabled value="">-- выберите проект --</option>
+                    <option
+                        v-for="proj in projects"
+                        :key="proj.id"
+                        :value="proj.id"
+                    >
+                        {{ proj.name }}
+                    </option>
+                </select>
+            </div>
+
             <div>
                 <label for="due_date">Срок выполнения:</label>
-                <input v-model="form.due_date" type="datetime-local" id="due_date"/>
+                <input
+                    v-model="form.due_date"
+                    type="datetime-local"
+                    id="due_date"
+                />
             </div>
+
             <div>
-                <label for="assignee">Исполнитель (User ID):</label>
-                <input v-model="form.assignee" type="number" id="assignee"/>
+                <label for="assignee">Исполнитель (ID):</label>
+                <input
+                    v-model="form.assignee"
+                    type="number"
+                    id="assignee"
+                    placeholder="ID пользователя (необязательно)"
+                />
             </div>
+
             <div>
                 <label for="status">Статус:</label>
                 <select v-model="form.status" id="status" required>
-                    <option v-for="s in statuses" :key="s.id" :value="s.id">
+                    <option disabled value="">-- выберите статус --</option>
+                    <option
+                        v-for="s in statuses"
+                        :key="s.id"
+                        :value="s.id"
+                    >
                         {{ s.name }}
                     </option>
                 </select>
             </div>
+
             <div>
                 <label for="priority">Приоритет:</label>
                 <select v-model="form.priority" id="priority" required>
-                    <option v-for="p in priorities" :key="p.id" :value="p.id">
+                    <option disabled value="">-- выберите приоритет --</option>
+                    <option
+                        v-for="p in priorities"
+                        :key="p.id"
+                        :value="p.id"
+                    >
                         {{ p.level }}
                     </option>
                 </select>
             </div>
+
             <button type="submit">{{ isEdit ? 'Сохранить' : 'Создать' }}</button>
             <button @click="goBack" type="button">Отмена</button>
         </form>
+
         <p v-if="error" class="error">{{ error }}</p>
     </div>
 </template>
 
 <script>
-import {useAuthStore, useTaskStore} from '../store'
 import {computed, onMounted, ref} from 'vue'
-import {useRouter} from "vue-router";
+import {useAuthStore, useTaskStore} from '../store'
+import {useRoute, useRouter} from 'vue-router'
+import apiClient from '../services/api.js'
 
 export default {
     name: 'TaskForm',
-    props: {},
-    setup(props, {emit}) {
+    setup() {
         const taskStore = useTaskStore()
         const authStore = useAuthStore()
-        const route = useRouter().currentRoute
+        const route = useRoute()
+        const router = useRouter()
 
-        const isEdit = computed(() => !!route.value.params.id)
-        const taskId = computed(() => route.value.params.id)
+        const isEdit = computed(() => Boolean(route.params.id))
+        const taskId = computed(() => route.params.id)
 
         const form = ref({
             title: '',
             description: '',
+            project_id: '',
             due_date: '',
             assignee: null,
-            status: null,
-            priority: null
+            status: '',
+            priority: ''
         })
 
         const statuses = computed(() => taskStore.statuses)
         const priorities = computed(() => taskStore.priorities)
+        const projects = computed(() => taskStore.projects)
+
         const error = ref('')
 
         onMounted(async () => {
             try {
                 await authStore.fetchUser()
+
                 await taskStore.fetchInitialData()
+
                 if (isEdit.value) {
-                    const taskResponse = await fetch(
-                        `${import.meta.env.VUE_APP_API_URL}/tasks/tasks/${taskId.value}/`,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${authStore.accessToken}`
-                            }
-                        }
-                    )
-                    if (!taskResponse.ok) {
-                        throw new Error('Не удалось получить данные задачи')
-                    }
-                    const data = await taskResponse.json()
-                    form.value = {
-                        title: data.title,
-                        description: data.description,
-                        due_date: data.due_date
-                            ? data.due_date.slice(0, 16)
-                            : '',
-                        assignee: data.assignee,
-                        status: data.status,
-                        priority: data.priority
+                    const response = await apiClient.get(`/tasks/tasks/${taskId.value}/`)
+                    const data = response.data
+
+                    form.value.title = data.title || ''
+                    form.value.description = data.description || ''
+                    form.value.project_id = data.project?.id || ''
+                    form.value.due_date = data.due_date
+                        ? data.due_date.slice(0, 16)
+                        : ''
+                    form.value.assignee = data.assignee || null
+                    form.value.status = data.status || ''
+                    form.value.priority = data.priority || ''
+                } else {
+                    if (projects.value.length > 0) {
+                        form.value.project_id = projects.value[0].id
                     }
                 }
             } catch (e) {
-                console.error(e)
+                console.error('Ошибка при инициализации формы:', e)
+                error.value = 'Не удалось загрузить данные для формы.'
             }
         })
 
         async function onSubmit() {
+            if (!form.value.title.trim()) {
+                error.value = 'Укажите заголовок задачи'
+                return
+            }
+            if (!form.value.project_id) {
+                error.value = 'Выберите проект'
+                return
+            }
+            if (!form.value.status) {
+                error.value = 'Укажите статус'
+                return
+            }
+            if (!form.value.priority) {
+                error.value = 'Укажите приоритет'
+                return
+            }
+
+            const payload = {
+                title: form.value.title,
+                description: form.value.description,
+                project_id: form.value.project_id,
+                due_date: form.value.due_date,
+                assignee: form.value.assignee,
+                status: form.value.status,
+                priority: form.value.priority
+            }
+
             try {
                 if (isEdit.value) {
-                    await taskStore.updateTask(taskId.value, {
-                        title: form.value.title,
-                        description: form.value.description,
-                        due_date: form.value.due_date,
-                        assignee: form.value.assignee,
-                        status: form.value.status,
-                        priority: form.value.priority
-                    })
+                    await taskStore.updateTask(taskId.value, payload)
                 } else {
-                    await taskStore.createTask({
-                        title: form.value.title,
-                        description: form.value.description,
-                        due_date: form.value.due_date,
-                        assignee: form.value.assignee,
-                        status: form.value.status,
-                        priority: form.value.priority
-                    })
+                    await taskStore.createTask(payload)
                 }
-                window.location = '/tasks'
-            } catch (err) {
-                error.value = 'Ошибка при сохранении задачи'
-                console.error(err)
+
+                router.push({
+                    name: 'TaskListByProject',
+                    params: {projectId: form.value.project_id}
+                })
+            } catch (e) {
+                console.error('Ошибка при сохранении задачи:', e)
+                error.value = 'Не удалось сохранить задачу. Проверьте поля и попробуйте снова.'
             }
         }
 
         function goBack() {
-            window.location = '/tasks'
+            if (isEdit.value && form.value.project_id) {
+                router.push({
+                    name: 'TaskListByProject',
+                    params: {projectId: form.value.project_id}
+                })
+            } else {
+                router.push({name: 'ProjectList'})
+            }
         }
 
         return {
             form,
             statuses,
             priorities,
+            projects,
             isEdit,
             onSubmit,
-            error,
-            goBack
+            goBack,
+            error
         }
     }
 }
@@ -150,12 +226,27 @@ export default {
 
 <style scoped>
 .task-form-container {
-    width: 500px;
+    max-width: 500px;
     margin: 50px auto;
+    padding: 0 20px;
 }
 
 .task-form-container div {
     margin-bottom: 15px;
+}
+
+.task-form-container input,
+.task-form-container select,
+.task-form-container textarea {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+button {
+    margin-right: 10px;
+    padding: 6px 12px;
+    cursor: pointer;
 }
 
 .error {

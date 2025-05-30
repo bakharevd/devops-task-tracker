@@ -2,6 +2,8 @@ import {createRouter, createWebHistory} from "vue-router";
 import LoginForm from "../components/LoginForm.vue";
 import TaskList from "../components/TaskList.vue";
 import TaskForm from "../components/TaskForm.vue";
+import ProjectList from "../components/ProjectList.vue";
+import ProjectForm from '../components/ProjectForm.vue';
 
 const routes = [
     {
@@ -10,10 +12,30 @@ const routes = [
         component: LoginForm
     },
     {
-        path: '/tasks',
-        name: 'TaskList',
-        component: TaskList,
+        path: '/projects',
+        name: 'ProjectList',
+        component: ProjectList,
         meta: {requiresAuth: true}
+    },
+    {
+        path: '/projects/new',
+        name: 'ProjectCreate',
+        component: ProjectForm,
+        meta: {requiresAuth: true}
+    },
+    {
+        path: '/projects/:projectId/tasks',
+        name: 'TaskListByProject',
+        component: TaskList,
+        props: route => ({projectId: route.params.projectId}),
+        meta: {requiresAuth: true}
+    },
+    {
+        path: '/tasks',
+        name: 'TaskListAll',
+        component: TaskList,
+        meta: {requiresAuth: true},
+        props: {projectId: 'all'}
     },
     {
         path: '/tasks/new',
