@@ -10,25 +10,28 @@
             <p><strong>Проект:</strong> {{ task.project?.name || '—' }}</p>
             <p><strong>Статус:</strong> {{ findStatusName(task.status) }}</p>
             <p><strong>Приоритет:</strong> {{ findPriorityLevel(task.priority) }}</p>
-            <p><strong>Исполнитель:</strong> {{ task.assignee || '—' }}</p>
-            <p><strong>Создатель:</strong> {{ task.creator }}</p>
+            <p><strong>Исполнитель:</strong> {{ task.assignee?.username || '—' }}</p>
+            <p><strong>Создатель:</strong> {{ task.creator.username }}</p>
             <p><strong>Дедлайн:</strong> {{ formatDate(task.due_date) }}</p>
 
             <section class="comments-section">
                 <h3>Комментарии</h3>
 
                 <div class="comment-form">
-          <textarea
-              v-model="newComment.text"
-              placeholder="Добавить комментарий..."
-          ></textarea>
+                    <textarea
+                        v-model="newComment.text"
+                        placeholder="Добавить комментарий..."
+                    ></textarea>
                     <input type="file" @change="onFileChanged"/>
                     <button @click="submitComment">Отправить</button>
                 </div>
 
                 <ul v-if="comments.length">
                     <li v-for="c in comments" :key="c.id">
-                        <p><strong>{{ c.author }}</strong> ({{ formatDate(c.created_at) }})</p>
+                        <p>
+                            <strong>{{ c.author.username }}</strong>
+                            ({{ formatDate(c.created_at) }})
+                        </p>
                         <p>{{ c.text }}</p>
                         <p v-if="c.attachment">
                             Вложение:
@@ -36,7 +39,10 @@
                                 Скачать
                             </a>
                         </p>
-                        <button v-if="isCommentAuthor(c.author)" @click="deleteComment(c.id)">
+                        <button
+                            v-if="isCommentAuthor(c.author.username)"
+                            @click="deleteComment(c.id)"
+                        >
                             Удалить
                         </button>
                     </li>
@@ -68,7 +74,6 @@ export default {
         const loading = ref(true)
 
         const comments = computed(() => taskStore.comments)
-
         const newComment = ref({text: '', attachment: null})
         const error = ref('')
 
@@ -80,7 +85,6 @@ export default {
                 task.value = response.data
 
                 await taskStore.fetchInitialData()
-
                 await taskStore.fetchComments(taskId.value)
             } catch (e) {
                 console.error('Ошибка при загрузке задачи:', e)
@@ -131,6 +135,10 @@ export default {
         }
 
         function isCommentAuthor(authorUsername) {
+            console.log(authStore.user)
+            console.log(authStore.user.username)
+            console.log(authorUsername)
+
             return authStore.user && authStore.user.username === authorUsername
         }
 

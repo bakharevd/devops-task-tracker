@@ -2,18 +2,13 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from .models import Task, Status, Priority, Project
+from ..users.serializers import UserSerializer
 
 User = get_user_model()
 
 
-class UserSimpleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email']
-
-
 class ProjectSerializer(serializers.ModelSerializer):
-    members = UserSimpleSerializer(read_only=True, many=True)
+    members = UserSerializer(read_only=True, many=True)
     members_ids = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         many=True,
@@ -55,12 +50,23 @@ class PrioritySerializer(serializers.ModelSerializer):
 
 
 class TaskSerializer(serializers.ModelSerializer):
-    creator = serializers.StringRelatedField(read_only=True)
-    assignee = serializers.PrimaryKeyRelatedField(
+    creator = UserSerializer(read_only=True)
+    creator_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
+        source='creator',
+        write_only=True,
+        required=False
+    )
+
+    assignee = UserSerializer(read_only=True)
+    assignee_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source='assignee',
+        write_only=True,
         allow_null=True,
         required=False
     )
+
     project = ProjectSerializer(read_only=True)
     project_id = serializers.PrimaryKeyRelatedField(
         queryset=Project.objects.all(),
@@ -84,16 +90,18 @@ class TaskSerializer(serializers.ModelSerializer):
             'updated_at',
             'due_date',
             'creator',
+            'creator_id',
             'assignee',
+            'assignee_id',
             'project',
             'project_id',
             'status',
             'priority'
         ]
-        read_only_fields = ['id', 'created_at', 'creator', 'project']
+        read_only_fields = ['id', 'created_at', 'creator', 'project', 'assignee']
 
     def create(self, validated_data):
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
+        request = self.context.get('request', None)
+        if request and hasattr(request, 'user') and 'creator' not in validated_data:
             validated_data['creator'] = request.user
         return super().create(validated_data)

@@ -129,7 +129,7 @@ export const useTaskStore = defineStore('tasks', {
         },
         async createComment(commentData) {
             const formData = new FormData()
-            formData.append('task', commentData.task)
+            formData.append('task_id', commentData.task)
             formData.append('text', commentData.text)
             if (commentData.attachment) {
                 formData.append('attachment', commentData.attachment)

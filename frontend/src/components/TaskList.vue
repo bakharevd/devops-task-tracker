@@ -40,7 +40,7 @@
                 <td v-if="!projectName">{{ task.project.name }}</td>
                 <td>{{ findStatusName(task.status) }}</td>
                 <td>{{ findPriorityLevel(task.priority) }}</td>
-                <td>{{ task.assignee || '—' }}</td>
+                <td>{{ task.assignee.username || '—' }}</td>
                 <td>
                     <button @click="goEdit(task.id)">✏️</button>
                     <button @click="onDelete(task.id)">🗑️</button>
@@ -57,7 +57,7 @@
 <script>
 import {computed, onMounted, ref} from 'vue'
 import {useAuthStore, useTaskStore} from '../store'
-import {useRoute, useRouter} from 'vue-router'
+import {useRouter} from 'vue-router'
 
 export default {
     name: 'TaskList',
@@ -70,7 +70,6 @@ export default {
     setup(props) {
         const taskStore = useTaskStore()
         const authStore = useAuthStore()
-        const route = useRoute()
         const router = useRouter()
         const searchTerm = ref('')
 
