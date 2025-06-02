@@ -6,8 +6,9 @@ from .models import Status, Priority, Task, Project
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'created_at', 'updated_at')
-    search_fields = ('name',)
+    search_fields = ('name', 'description')
     ordering = ('name',)
+    filter_horizontal = ('members',)
 
 
 @admin.register(Status)

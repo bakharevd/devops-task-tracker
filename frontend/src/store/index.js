@@ -1,7 +1,21 @@
 import {defineStore} from "pinia";
-import axios from "axios";
+import apiClient from "../services/api";
 
 const API_URL = import.meta.env.VUE_APP_API_URL || '/api'
+
+
+export const useUserStore = defineStore('users', {
+    state: () => ({
+        users: []
+    }),
+    actions: {
+        async fetchUsers() {
+            const response = await apiClient.get('/users/')
+            this.users = response.data
+        }
+    }
+})
+
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -12,7 +26,7 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async login(email, password) {
             try {
-                const response = await axios.post(`${API_URL}/token/`, {
+                const response = await apiClient.post('/token/', {
                     email,
                     password
                 })
@@ -34,11 +48,7 @@ export const useAuthStore = defineStore('auth', {
         },
         async fetchUser() {
             try {
-                const response = await axios.get(`${API_URL}/users/me/`, {
-                    headers: {
-                        Authorization: `Bearer ${this.accessToken}`
-                    }
-                })
+                const response = await apiClient.get('/users/me/')
                 this.user = response.data
             } catch (error) {
                 await this.logout()
@@ -47,7 +57,7 @@ export const useAuthStore = defineStore('auth', {
         },
         async refreshTokens() {
             try {
-                const response = await axios.post(`${API_URL}/token/refresh`, {
+                const response = await apiClient.post('/token/refresh', {
                     refresh: this.refreshToken
                 })
                 this.accessToken = response.data.access
@@ -66,87 +76,60 @@ export const useTaskStore = defineStore('tasks', {
         statuses: [],
         priorities: [],
         projects: [],
-        currentProjectId: 'all'
+        currentProjectId: 'all',
+        notifications: []
     }),
     actions: {
         async fetchInitialData() {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
             const [statusesRes, prioritiesRes, projectsRes] = await Promise.all([
-                axios.get(`${API_URL}/tasks/statuses/`, {headers}),
-                axios.get(`${API_URL}/tasks/priorities`, {headers}),
-                axios.get(`${API_URL}/tasks/projects/`, {headers})
+                apiClient.get('/tasks/statuses/'),
+                apiClient.get('/tasks/priorities'),
+                apiClient.get('/tasks/projects/')
             ])
             this.statuses = statusesRes.data
             this.priorities = prioritiesRes.data
             this.projects = projectsRes.data
         },
         async fetchTasks(projectId = 'all') {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
-            const response = await axios.get(`${API_URL}/tasks/tasks/?project=${projectId}`, {headers})
+            const response = await apiClient.get(`/tasks/tasks/?project=${projectId}`)
             this.tasks = response.data
             this.currentProjectId = projectId
         },
         async createTask(taskData) {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
-            await axios.post(`${API_URL}/tasks/tasks/`, taskData, {headers})
+            await apiClient.post('/tasks/tasks/', taskData)
             await this.fetchTasks(this.currentProjectId)
         },
         async updateTask(id, taskData) {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
-            await axios.patch(`${API_URL}/tasks/tasks/${id}`, taskData, {headers})
+            await apiClient.patch(`/tasks/tasks/${id}`, taskData)
             await this.fetchTasks(this.currentProjectId)
         },
         async deleteTask(id) {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
-            await axios.delete(`${API_URL}/tasks/tasks/${id}/`, {headers})
+            await apiClient.delete(`/tasks/tasks/${id}/`)
             await this.fetchTasks(this.currentProjectId)
         },
         async fetchProjects() {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
-            const response = await axios.get(`${API_URL}/tasks/projects/`, {headers})
+            const response = await apiClient.get('/tasks/projects/')
             this.projects = response.data
         },
         async createProject(projectData) {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
-            await axios.post(`${API_URL}/tasks/projects/`, projectData, {headers})
+            await apiClient.post('/tasks/projects/', projectData)
             await this.fetchProjects()
         },
         async updateProject(id, projectData) {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
-            await axios.patch(`${API_URL}/tasks/projects/${id}/`, projectData, {headers})
+            await apiClient.patch(`/tasks/projects/${id}/`, projectData)
             await this.fetchProjects()
         },
         async deleteProject(id) {
-            const authStore = useAuthStore()
-            const headers = {
-                Authorization: `Bearer ${authStore.accessToken}`
-            }
-            await axios.delete(`${API_URL}/tasks/projects/${id}/`, {headers})
+            await apiClient.delete(`/tasks/projects/${id}/`)
             await this.fetchProjects()
+        },
+        async fetchNotifications() {
+            const response = await apiClient.get('/notifications/')
+            this.notifications = response.data
+        },
+        async markNotificationRead(id) {
+            await apiClient.patch(`/notifications/${id}/`, {is_read: true})
+            await this.fetchNotifications()
         }
     }
 })

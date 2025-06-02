@@ -7,6 +7,12 @@
             class="admin-link"
             v-if="isAdmin"
         >Админка</a>
+        <a
+            href="/logout/"
+            rel="noopener"
+            class="admin-link"
+            v-if="isAuthrized"
+        >Выйти</a>
     </nav>
 </template>
 
@@ -18,8 +24,12 @@ export default {
     setup() {
         const authStore = useAuthStore()
         const isAdmin = computed(() => authStore.user && authStore.user.is_superuser === true)
+        const isAuthrized = computed(() => authStore.user)
 
-        return {isAdmin}
+        return {
+            isAdmin,
+            isAuthrized
+        }
     }
 }
 

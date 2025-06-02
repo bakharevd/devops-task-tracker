@@ -24,6 +24,12 @@ const routes = [
         meta: {requiresAuth: true}
     },
     {
+        path: '/projects/:projectId/edit',
+        name: 'ProjectEdit',
+        component: ProjectForm,
+        meta: {requiresAuth: true}
+    },
+    {
         path: '/projects/:projectId/tasks',
         name: 'TaskListByProject',
         component: TaskList,

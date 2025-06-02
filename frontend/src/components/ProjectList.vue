@@ -12,26 +12,38 @@
 
         <div class="actions">
             <button @click="goCreateProject">+ Новый проект</button>
+            <button @click="goTasks">Все задачи</button>
         </div>
 
-        <ul v-if="filteredProjects.length">
-            <li>
-                <router-link :to="{ name: 'TaskListAll' }">
-                    Все проекты
-                </router-link>
-            </li>
-            <li
+        <table v-if="filteredProjects.length">
+            <thead>
+            <tr>
+                <th>Название</th>
+                <th>Участники</th>
+                <th>Действия</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr
                 v-for="project in filteredProjects"
                 :key="project.id"
             >
-                <router-link
-                    :to="{ name: 'TaskListByProject', params: { projectId: project.id } }"
-                >
-                    {{ project.name }}
-                </router-link>
-            </li>
-        </ul>
-        <p v-else>Проекты не найдены.</p>
+                <td>
+                    <router-link :to="{name: 'TaskListByProject', params: {projectId: project.id} }">
+                        {{ project.name }}
+                    </router-link>
+                </td>
+                <td>
+                    {{ project.members.map(u => u.username).join(', ') || '-' }}
+                </td>
+                <td>
+                    <button @click="goEdit(project.id)">✏️</button>
+                    <button @click="deleteProject(project.id)">🗑️</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <p v-else>Проекты не найдены</p>
     </div>
 </template>
 
@@ -57,8 +69,12 @@ export default {
             if (!searchTerm.value) {
                 return taskStore.projects
             }
-            return taskStore.projects.filter(proj =>
-                proj.name.toLowerCase().includes(searchTerm.value.toLowerCase())
+            const s = searchTerm.value.toLowerCase()
+            return taskStore.projects.filter(
+                p =>
+                    p.name.toLowerCase().includes(s) ||
+                    p.description.toLowerCase().includes(s) ||
+                    p.members.some(u => u.username.toLowerCase().includes(s))
             )
         })
 
@@ -66,10 +82,31 @@ export default {
             router.push({name: 'ProjectCreate'})
         }
 
+        function goTasks() {
+            router.push({name: 'TaskListAll'})
+        }
+
+        function goEdit(id) {
+            router.push({name: 'ProjectEdit', params: {projectId: id}})
+        }
+
+        async function deleteProject(id) {
+            if (confirm('Удалить проект? Все связанные задачи будут удалены')) {
+                try {
+                    await taskStore.deleteProject(id)
+                } catch (e) {
+                    console.error(e)
+                }
+            }
+        }
+
         return {
             searchTerm,
             filteredProjects,
-            goCreateProject
+            goCreateProject,
+            goEdit,
+            deleteProject,
+            goTasks,
         }
     }
 }
@@ -77,13 +114,9 @@ export default {
 
 <style scoped>
 .projects-container {
-    max-width: 600px;
+    max-width: 800px;
     margin: 30px auto;
     padding: 0 20px;
-}
-
-h2 {
-    margin-bottom: 15px;
 }
 
 .search-block {
@@ -93,24 +126,24 @@ h2 {
 .search-block input {
     width: 100%;
     padding: 8px;
-    box-sizing: border-box;
 }
 
 .actions {
     margin-bottom: 15px;
 }
 
-ul {
-    list-style: none;
-    padding: 0;
+table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-li {
-    margin: 8px 0;
+th, td {
+    padding: 8px 12px;
+    border: 1px solid #cccccc;
 }
 
 button {
-    padding: 6px 12px;
+    padding: 5px;
     cursor: pointer;
 }
 </style>

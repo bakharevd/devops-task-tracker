@@ -1,6 +1,6 @@
 <template>
     <div class="project-form-container">
-        <h2>Новый проект</h2>
+        <h2>{{ isEdit ? 'Редактирование проекта' : 'Новый проект' }}</h2>
         <form @submit.prevent="onSubmit">
             <div>
                 <label for="name">Название проекта:</label>
@@ -12,6 +12,7 @@
                     required
                 />
             </div>
+
             <div>
                 <label for="description">Описание:</label>
                 <textarea
@@ -20,7 +21,26 @@
                     placeholder="Опционально: описание проекта"
                 ></textarea>
             </div>
-            <button type="submit">Создать</button>
+
+            <div>
+                <label for="members">Участники проекта (для выбора нескольких элементов удерживайте Ctrl):</label>
+                <select
+                    v-model="form.members_ids"
+                    id="members"
+                    multiple
+                    size="5"
+                >
+                    <option
+                        v-for="user in users"
+                        :key="user.id"
+                        :value="user.id"
+                    >
+                        {{ user.username }} ({{ user.email }})
+                    </option>
+                </select>
+            </div>
+
+            <button type="submit">{{ isEdit ? 'Сохранить' : 'Создать' }}</button>
             <button @click="goBack" type="button">Отмена</button>
         </form>
         <p v-if="error" class="error">{{ error }}</p>
@@ -28,35 +48,70 @@
 </template>
 
 <script>
-import {ref} from 'vue'
-import {useTaskStore} from '../store'
-import {useRouter} from 'vue-router'
+import {computed, onMounted, ref} from 'vue'
+import {useAuthStore, useTaskStore, useUserStore} from '../store'
+import {useRoute, useRouter} from 'vue-router'
+import apiClient from "../services/api";
 
 export default {
     name: 'ProjectForm',
     setup() {
         const taskStore = useTaskStore()
+        const userStore = useUserStore()
+        const authStore = useAuthStore()
+        const route = useRoute()
         const router = useRouter()
+
+        const isEdit = computed(() => Boolean(route.params.projectId))
+        const projectId = computed(() => route.params.projectId)
+
         const form = ref({
             name: '',
-            description: ''
+            description: '',
+            members_ids: []
         })
         const error = ref('')
+        const users = computed(() => userStore.users)
+
+        onMounted(async () => {
+            try {
+                await authStore.fetchUser()
+                await userStore.fetchUsers()
+                await taskStore.fetchProjects()
+
+                if (isEdit.value) {
+                    const response = await apiClient.get(`/tasks/projects/${projectId.value}/`)
+                    const data = response.data
+                    form.value.name = data.name || ''
+                    form.value.description = data.description || ''
+                    form.value.members_ids = data.members.map(u => u.id)
+                }
+            } catch (e) {
+                console.error('Ошибка при инициализации компонента:', e)
+                error.value = 'Не удалось загрузить данные формы'
+            }
+        })
 
         async function onSubmit() {
             if (!form.value.name.trim()) {
-                error.value = 'Нельзя создавать проект без названия'
+                error.value = 'Укажите название проекта'
                 return
             }
+            const payload = {
+                name: form.value.name,
+                description: form.value.description,
+                members_ids: form.value.members_ids
+            }
             try {
-                await taskStore.createProject({
-                    name: form.value.name,
-                    description: form.value.description
-                })
-                router.push({name: 'ProjectList'})
+                if (isEdit.value) {
+                    await taskStore.updateProject(projectId.value, payload)
+                } else {
+                    await taskStore.createProject(payload)
+                }
+                router.push({ name: 'ProjectList' })
             } catch (err) {
-                error.value = 'Ошибка при создании проекта'
-                console.error(err)
+                console.error('Ошибка при сохранении проекта:', err)
+                error.value = 'Не удалось сохранить проект'
             }
         }
 
@@ -66,9 +121,11 @@ export default {
 
         return {
             form,
-            error,
+            users,
+            isEdit,
             onSubmit,
-            goBack
+            goBack,
+            error,
         }
     }
 }
@@ -86,10 +143,15 @@ export default {
 }
 
 .project-form-container input,
+.project-form-container select,
 .project-form-container textarea {
     width: 100%;
     padding: 8px;
     box-sizing: border-box;
+}
+
+select[multiple] {
+    height: 120px;
 }
 
 button {
@@ -103,3 +165,4 @@ button {
     margin-top: 10px;
 }
 </style>
+

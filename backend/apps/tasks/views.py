@@ -10,10 +10,15 @@ from .serializers import (
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'description']
+    search_fields = ['name', 'description', 'members__username']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.is_staff:
+            return Project.objects.prefetch_related('members').all()
+        return Project.objects.filter(members=user).prefetch_related('members')
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -22,22 +27,26 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.select_related('creator', 'assignee', 'status', 'priority', 'project').all()
     serializer_class = TaskSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'description']
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        user = self.request.user
+        qs = Task.objects.select_related('creator', 'assignee', 'status', 'priority', 'project').all()
         project_param = self.request.query_params.get('project')
         if project_param:
             if project_param == 'all':
-                return qs
-            try:
-                proj_id = int(project_param)
-                return qs.filter(project_id=proj_id)
-            except (ValueError, TypeError):
-                return qs
+                pass
+            else:
+                try:
+                    proj_id = int(project_param)
+                    qs = qs.filter(project_id=proj_id)
+                except (ValueError, TypeError):
+                    pass
+        if not (user.is_superuser or user.is_staff):
+            user_projects = user.projects.all()
+            qs = qs.filter(project__in=user_projects)
         return qs
 
     def get_permissions(self):

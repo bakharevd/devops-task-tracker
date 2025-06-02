@@ -10,6 +10,11 @@ class Project(models.Model):
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='projects',
+        blank=True
+    )
 
     class Meta:
         verbose_name = 'Проект'

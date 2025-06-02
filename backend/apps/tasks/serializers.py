@@ -6,10 +6,40 @@ from .models import Task, Status, Priority, Project
 User = get_user_model()
 
 
+class UserSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+
+
 class ProjectSerializer(serializers.ModelSerializer):
+    members = UserSimpleSerializer(read_only=True, many=True)
+    members_ids = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        many=True,
+        write_only=True,
+        source='members'
+    )
+
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'description', 'created_at', 'updated_at', 'members', 'members_ids']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        members = validated_data.pop('members', [])
+        project = Project.objects.create(**validated_data)
+        project.members.set(members)
+        return project
+
+    def update(self, instance, validated_data):
+        members = validated_data.pop('members', None)
+        instance.name = validated_data.get('name', instance.name)
+        instance.description = validated_data.get('description', instance.description)
+        instance.save()
+        if members is not None:
+            instance.members.set(members)
+        return instance
 
 
 class StatusSerializer(serializers.ModelSerializer):
