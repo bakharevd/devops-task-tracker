@@ -77,7 +77,6 @@ export const useTaskStore = defineStore('tasks', {
         priorities: [],
         projects: [],
         currentProjectId: 'all',
-        notifications: [],
         comments: []
     }),
     actions: {
@@ -123,14 +122,6 @@ export const useTaskStore = defineStore('tasks', {
         async deleteProject(id) {
             await apiClient.delete(`/tasks/projects/${id}/`)
             await this.fetchProjects()
-        },
-        async fetchNotifications() {
-            const response = await apiClient.get('/notifications/')
-            this.notifications = response.data
-        },
-        async markNotificationRead(id) {
-            await apiClient.patch(`/notifications/${id}/`, {is_read: true})
-            await this.fetchNotifications()
         },
         async fetchComments(taskId) {
             const response = await apiClient.get(`/tasks/comments/?task=${taskId}`)

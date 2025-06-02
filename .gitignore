@@ -6,6 +6,7 @@ __pycache__/
 
 # Django
 backend/staticfiles/
+backend/media/
 backend/**/*.pyc
 backend/**/migrations/
 backend/.venv/
