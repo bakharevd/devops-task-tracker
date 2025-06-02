@@ -32,7 +32,11 @@
                 v-for="task in filteredTasks"
                 :key="task.id"
             >
-                <td>{{ task.title }}</td>
+                <td>
+                    <router-link :to="{ name: 'TaskDetail', params: { id: task.id }}">
+                        {{ task.title }}
+                    </router-link>
+                </td>
                 <td v-if="!projectName">{{ task.project.name }}</td>
                 <td>{{ findStatusName(task.status) }}</td>
                 <td>{{ findPriorityLevel(task.priority) }}</td>

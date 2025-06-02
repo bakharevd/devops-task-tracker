@@ -100,3 +100,35 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.status.name})"
+
+
+class Comment(models.Model):
+    """
+    Комментарии к задаче с вложениями
+    """
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    text = models.TextField()
+    attachment = models.FileField(
+        upload_to='task_attachments/',
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Комментарий #{self.id} к Задаче «{self.task.title}»"

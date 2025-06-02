@@ -1,12 +1,15 @@
 from rest_framework import viewsets, permissions, filters
+from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import Task, Status, Priority, Project
+from .models import Task, Status, Priority, Project, Comment
+from .permissions import IsAuthorOrAdmin
 from .serializers import (
     TaskSerializer,
     StatusSerializer,
     PrioritySerializer,
     ProjectSerializer
 )
+from .serializers_comment import CommentSerializer
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -76,3 +79,27 @@ class PriorityViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.select_related('author', 'task').all()
+    serializer_class = CommentSerializer
+    parser_classes = [MultiPartParser, FormParser]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['text']
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'create']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsAuthorOrAdmin()]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        task_id = self.request.query_params.get('task')
+        if task_id:
+            try:
+                tid = int(task_id)
+                return queryset.filter(task_id=tid)
+            except (ValueError, TypeError):
+                return queryset
+        return queryset

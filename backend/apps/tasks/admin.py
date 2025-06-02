@@ -1,6 +1,15 @@
 from django.contrib import admin
 
-from .models import Status, Priority, Task, Project
+from .models import Status, Priority, Task, Project, Comment
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'task', 'author', 'created_at', 'updated_at')
+    list_filter = ('task', 'author', 'created_at', 'updated_at')
+    search_fields = ('text', 'author__username')
+    readonly_fields = ('created_at', 'updated_at')
+    raw_id_fields = ('task', 'author')
 
 
 @admin.register(Project)
@@ -28,7 +37,7 @@ class PriorityAdmin(admin.ModelAdmin):
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'title', 'project', 'creator', 'assignee', 'status', 'priority', 'created_at', 'due_date'
+        'id', 'title', 'project', 'creator', 'assignee', 'status', 'priority', 'created_at', 'updated_at', 'due_date'
     )
     list_filter = ('project', 'status', 'priority', 'creator', 'assignee')
     search_fields = ('title', 'description')

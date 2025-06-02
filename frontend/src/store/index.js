@@ -77,7 +77,8 @@ export const useTaskStore = defineStore('tasks', {
         priorities: [],
         projects: [],
         currentProjectId: 'all',
-        notifications: []
+        notifications: [],
+        comments: []
     }),
     actions: {
         async fetchInitialData() {
@@ -130,6 +131,26 @@ export const useTaskStore = defineStore('tasks', {
         async markNotificationRead(id) {
             await apiClient.patch(`/notifications/${id}/`, {is_read: true})
             await this.fetchNotifications()
+        },
+        async fetchComments(taskId) {
+            const response = await apiClient.get(`/tasks/comments/?task=${taskId}`)
+            this.comments = response.data
+        },
+        async createComment(commentData) {
+            const formData = new FormData()
+            formData.append('task', commentData.task)
+            formData.append('text', commentData.text)
+            if (commentData.attachment) {
+                formData.append('attachment', commentData.attachment)
+            }
+            await apiClient.post('/tasks/comments/', formData, {
+                headers: {'Content-Type': 'multipart/form-data'}
+            })
+            await this.fetchComments(commentData.task)
+        },
+        async deleteComment(id, taskId) {
+            await apiClient.delete(`/tasks/comments/${id}/`)
+            await this.fetchComments(taskId)
         }
     }
 })

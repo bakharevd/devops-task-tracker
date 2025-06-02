@@ -62,6 +62,7 @@ docker-compose exec backend python manage.py createsuperuser
 # Структура проекта
 ```
 tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache__|.idea' 
+.
 ├── .env.example
 ├── .gitignore
 ├── README.md
@@ -73,7 +74,9 @@ tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache_
 │   │   │   ├── admin.py
 │   │   │   ├── apps.py
 │   │   │   ├── models.py
+│   │   │   ├── permissions.py
 │   │   │   ├── serializers.py
+│   │   │   ├── serializers_comment.py
 │   │   │   ├── urls.py
 │   │   │   └── views.py
 │   │   └── users
@@ -92,6 +95,9 @@ tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache_
 │   │   └── wsgi.py
 │   ├── entrypoint.sh
 │   ├── manage.py
+│   ├── media
+│   │   └── task_attachments
+│   │       └── Шаблон_ПЗ_Асинхрон.txt
 │   └── requirements.txt
 ├── deploy
 │   └── nginx
@@ -111,6 +117,7 @@ tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache_
     │   │   ├── LoginForm.vue
     │   │   ├── ProjectForm.vue
     │   │   ├── ProjectList.vue
+    │   │   ├── TaskDetail.vue
     │   │   ├── TaskForm.vue
     │   │   ├── TaskList.vue
     │   │   └── layouts
@@ -124,7 +131,8 @@ tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache_
     │       └── index.js
     └── vite.config.js
 
-17 directories, 45 files
+19 directories, 49 files
+
 ```
 
 # Авторизация и роли

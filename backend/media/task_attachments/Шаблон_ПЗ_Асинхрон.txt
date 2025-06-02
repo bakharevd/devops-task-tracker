@@ -1,0 +1,131 @@
+# ========================
+# Тема: Асинхронное программирование в Python (aiohttp, aiofiles)
+# Задания 1–5 для самостоятельной работы 
+
+import asyncio
+import aiohttp
+import aiofiles
+import os
+
+# ===== Задание 1 =====
+# Асинхронно скачать несколько изображений по URL 
+# и сохранить их на диск в папку images.
+# Использовать aiohttp и asyncio.gather.
+# URL-адреса изображений взять в интернет (не менее трех)
+# и поместить их в список urls.
+async def download_image(session, url, filename):
+    pass  # Реализуй скачивание изображения по url и запись в файл через aiofiles
+
+async def task_1():
+    print("\n[Задание 1] Асинхронная загрузка изображений")
+    urls = [
+        "https://www.jetbrains.com/teamcity/integrations/build-tools/img/python_logo.png",
+    ]
+    os.makedirs("images", exist_ok=True)
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for i, url in enumerate(urls, 1):
+            filename = f"images/image_{i}.jpg"
+            tasks.append(download_image(session, url, filename))
+        await asyncio.gather(*tasks)
+    print("Все изображения загружены.\n")
+
+# ===== Задание 2 =====
+# Асинхронно записать в 3 файла разные тексты, затем прочитать и вывести содержимое.
+# Использовать aiofiles.
+async def write_text(filename, content):
+    pass  # реализовать запись
+
+async def read_text(filename):
+    pass  # реализовать чтение
+
+async def task_2():
+    print("\n[Задание 2] Асинхронная запись и чтение файлов")
+    filenames = ["file_a.txt", "file_b.txt", "file_c.txt"]
+    contents = ["Привет из файла A", "Привет из файла B", "Привет из файла C"]
+    write_tasks = [write_text(fn, text) for fn, text in zip(filenames, contents)]
+    await asyncio.gather(*write_tasks)
+    read_tasks = [read_text(fn) for fn in filenames]
+    await asyncio.gather(*read_tasks)
+    print("Готово\n")
+
+# ===== Задание 3 =====
+# Асинхронно отправить GET-запросы на 3 сайта и вывести первые 100 символов ответа.
+# Использовать aiohttp и asyncio.gather.
+async def fetch_url(session, url):
+    pass  # реализовать запрос и вывод первых 100 символов ответа
+
+async def task_3():
+    print("\n[Задание 3] Асинхронные HTTP-запросы")
+    urls = [
+        "https://www.python.org",
+        "https://www.wikipedia.org",
+        "https://www.github.com"
+    ]
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_url(session, url) for url in urls]
+        await asyncio.gather(*tasks)
+    print("Запросы завершены\n")
+
+# ===== Задание 4 =====
+# Асинхронно записать текст в 5 разных файлов, используя цикл.
+# Названия файлов можно сделать через f-строку: file_1.txt, ..., file_5.txt
+async def task_4():
+    print("\n[Задание 4] Запись в несколько файлов")
+    tasks = []
+    for i in range(1, 6):
+        filename = f"file_{i}.txt"
+        content = f"Это содержимое файла {i}"
+        tasks.append(write_text(filename, content))
+    await asyncio.gather(*tasks)
+    print("Файлы записаны\n")
+
+# ===== Задание 5 =====
+# Скачать HTML-код 3 сайтов, сохранить их в отдельные файлы, затем прочитать содержимое.
+# Использовать aiohttp + aiofiles.
+async def fetch_and_save_html(session, url, filename):
+    pass  # реализовать скачивание HTML и запись в файл
+
+async def task_5():
+    print("\n[Задание 5] Скачивание HTML и чтение")
+    urls = [
+        "https://www.python.org",
+        "https://www.wikipedia.org",
+        "https://www.github.com"
+    ]
+    filenames = [f"html_{i}.txt" for i in range(1, 4)]
+    async with aiohttp.ClientSession() as session:
+        fetch_tasks = [fetch_and_save_html(session, url, fn) for url, fn in zip(urls, filenames)]
+        await asyncio.gather(*fetch_tasks)
+
+    print("\nСодержимое HTML-файлов:")
+    read_tasks = [read_text(fn) for fn in filenames]
+    await asyncio.gather(*read_tasks)
+    print("Завершено\n")
+
+# ==== Меню для запуска ====
+async def main():
+    print("Выберите задание для запуска:")
+    print("1 - Асинхронная загрузка изображений")
+    print("2 - Асинхронная запись и чтение файлов")
+    print("3 - Асинхронные HTTP-запросы")
+    print("4 - Запись текста в несколько файлов")
+    print("5 - Скачивание HTML страниц и вывод")
+
+    choice = input("Введите номер задания (1-5): ").strip()
+    if choice == "1":
+        await task_1()
+    elif choice == "2":
+        await task_2()
+    elif choice == "3":
+        await task_3()
+    elif choice == "4":
+        await task_4()
+    elif choice == "5":
+        await task_5()
+    else:
+        print("Неверный выбор")
+
+# ==== Запуск ====
+if __name__ == "__main__":
+    asyncio.run(main())

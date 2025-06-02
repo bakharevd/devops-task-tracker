@@ -4,6 +4,7 @@ import TaskList from "../components/TaskList.vue";
 import TaskForm from "../components/TaskForm.vue";
 import ProjectList from "../components/ProjectList.vue";
 import ProjectForm from '../components/ProjectForm.vue';
+import TaskDetail from "../components/TaskDetail.vue";
 
 const routes = [
     {
@@ -54,6 +55,12 @@ const routes = [
         name: 'TaskEdit',
         component: TaskForm,
         meta: {requiresAuth: true}
+    },
+    {
+        path: '/tasks/:id',
+        name: 'TaskDetail',
+        component: TaskDetail,
+        meta: { requiresAuth: true }
     },
     {
         path: '/:catchAll(.*)',
