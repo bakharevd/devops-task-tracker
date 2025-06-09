@@ -17,30 +17,46 @@
 
         <table v-if="filteredProjects.length">
             <thead>
-            <tr>
-                <th>Название</th>
-                <th>Участники</th>
-                <th>Действия</th>
-            </tr>
+                <tr>
+                    <th>Название</th>
+                    <th>Участники</th>
+                    <th>Действия</th>
+                </tr>
             </thead>
             <tbody>
-            <tr
-                v-for="project in filteredProjects"
-                :key="project.id"
-            >
-                <td>
-                    <router-link :to="{name: 'TaskListByProject', params: {projectId: project.id} }">
-                        {{ project.name }}
-                    </router-link>
-                </td>
-                <td>
-                    {{ project.members.map(u => u.username).join(', ') || '-' }}
-                </td>
-                <td>
-                    <button @click="goEdit(project.id)">✏️</button>
-                    <button @click="deleteProject(project.id)">🗑️</button>
-                </td>
-            </tr>
+                <tr v-for="project in filteredProjects" :key="project.id">
+                    <td>
+                        <router-link
+                            :to="{
+                                name: 'TaskListByProject',
+                                params: { projectId: project.id },
+                            }"
+                        >
+                            {{ project.name }}
+                        </router-link>
+                    </td>
+                    <td>
+                        <AvatarGroup>
+                            <Avatar
+                                v-for="user in project.members.slice(0, 4)"
+                                :key="user.id"
+                                :image="user.avatar_url"
+                                shape="circle"
+                                v-tooltip.top="`${user.last_name} ${user.first_name}\n(${user.position?.name || ''})`"
+                            />
+                            <Avatar 
+                                v-if="project.members.length > 4"
+                                :label="`+${project.members.length - 4}`"
+                                shape="circle"
+                                v-tooltip.top="extraUsernames(project.members)"
+                            />
+                        </AvatarGroup>
+                    </td>
+                    <td>
+                        <button @click="goEdit(project.id)">✏️</button>
+                        <button @click="deleteProject(project.id)">🗑️</button>
+                    </td>
+                </tr>
             </tbody>
         </table>
         <p v-else>Проекты не найдены</p>
@@ -48,56 +64,62 @@
 </template>
 
 <script>
-import {computed, onMounted, ref} from 'vue'
-import {useAuthStore, useTaskStore} from '../store'
-import {useRouter} from 'vue-router'
+import { computed, onMounted, ref } from "vue";
+import { useAuthStore, useTaskStore } from "../store";
+import { useRouter } from "vue-router";
 
 export default {
-    name: 'ProjectList',
+    name: "ProjectList",
     setup() {
-        const taskStore = useTaskStore()
-        const authStore = useAuthStore()
-        const router = useRouter()
-        const searchTerm = ref('')
+        const taskStore = useTaskStore();
+        const authStore = useAuthStore();
+        const router = useRouter();
+        const searchTerm = ref("");
 
         onMounted(async () => {
-            await authStore.fetchUser()
-            await taskStore.fetchProjects()
-        })
+            await authStore.fetchUser();
+            await taskStore.fetchProjects();
+        });
 
         const filteredProjects = computed(() => {
             if (!searchTerm.value) {
-                return taskStore.projects
+                return taskStore.projects;
             }
-            const s = searchTerm.value.toLowerCase()
+            const s = searchTerm.value.toLowerCase();
             return taskStore.projects.filter(
-                p =>
+                (p) =>
                     p.name.toLowerCase().includes(s) ||
                     p.description.toLowerCase().includes(s) ||
-                    p.members.some(u => u.username.toLowerCase().includes(s))
-            )
-        })
+                    p.members.some((u) => u.username.toLowerCase().includes(s))
+            );
+        });
 
         function goCreateProject() {
-            router.push({name: 'ProjectCreate'})
+            router.push({ name: "ProjectCreate" });
         }
 
         function goTasks() {
-            router.push({name: 'TaskListAll'})
+            router.push({ name: "TaskListAll" });
         }
 
         function goEdit(id) {
-            router.push({name: 'ProjectEdit', params: {projectId: id}})
+            router.push({ name: "ProjectEdit", params: { projectId: id } });
         }
 
         async function deleteProject(id) {
-            if (confirm('Удалить проект? Все связанные задачи будут удалены')) {
+            if (confirm("Удалить проект? Все связанные задачи будут удалены")) {
                 try {
-                    await taskStore.deleteProject(id)
+                    await taskStore.deleteProject(id);
                 } catch (e) {
-                    console.error(e)
+                    console.error(e);
                 }
             }
+        }
+
+        function extraUsernames(members) {
+            const extra = members.slice(4)
+            if (!extra.length) return ''
+            return extra.map(u => `${u.last_name} ${u.first_name} (${u.position?.name || ''})`).join('\n')
         }
 
         return {
@@ -107,9 +129,10 @@ export default {
             goEdit,
             deleteProject,
             goTasks,
-        }
-    }
-}
+            extraUsernames,
+        };
+    },
+};
 </script>
 
 <style scoped>
@@ -137,7 +160,8 @@ table {
     border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
     padding: 8px 12px;
     border: 1px solid #cccccc;
 }

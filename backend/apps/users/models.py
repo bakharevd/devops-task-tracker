@@ -24,7 +24,8 @@ class User(AbstractUser):
         ('user', 'Пользователь'),
         ('admin', 'Администратор'),
     )
-
+    first_name = models.CharField(max_length=25)
+    last_name = models.CharField(max_length=50)
     email = models.EmailField(unique=True)
     position = models.ForeignKey(
         Position,
@@ -48,7 +49,7 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
-    def __str(self):
+    def __str__(self):
         return self.email
     
     @property

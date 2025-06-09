@@ -1,4 +1,83 @@
 <template>
+    <div class="min-h-screen flex flex-col items-center justify-center px-4">
+        <h1 class="text-2xl font-semibold mb-6 mt-6">
+            <span v-if="projectName">{{ projectName }}</span>
+            <span v-else>Все проекты</span>
+        </h1>
+
+        <DataTable :value="filteredTasks" class="w-full max-w-7xl" responsiveLayout="scroll">
+            <Column field="id" header="ID" sortable>
+                <template #body="slotProps">
+                    <router-link :to="{ name: 'TaskDetail', params: { id: slotProps.data.id } }">
+                        {{ slotProps.data.id }}
+                    </router-link>
+                </template>
+            </Column>
+            <Column field="title" header="Название" sortable>
+                <template #body="slotProps">
+                    <router-link :to="{ name: 'TaskDetail', params: { id: slotProps.data.id } }">
+                        {{ slotProps.data.title }}
+                    </router-link>
+                </template>
+            </Column>
+            <Column field="project.name" header="Проект" sortable>
+                <template #body="slotProps">
+                    <router-link :to="{ name: 'TaskListByProject', params: { projectId: slotProps.data.project.id } }">
+                        {{ slotProps.data.project.name }}
+                    </router-link>
+                </template>
+            </Column>
+            <Column field="status" header="Статус" sortable>
+                <template #body="slotProps">
+                    <div class="w-full text-center">
+                        <Tag 
+                            v-if="findStatusName(slotProps.data.status)"
+                            :severity="uiStyles.getStatusStyle(findStatusName(slotProps.data.status)).severity"
+                            :value="uiStyles.getStatusStyle(findStatusName(slotProps.data.status)).label"
+                            :icon="uiStyles.getStatusStyle(findStatusName(slotProps.data.status)).icon"
+                        />
+                    </div>
+                </template>
+            </Column>
+            <Column field="priority" header="Приоритет" sortable>
+                <template #body="slotProps">
+                    <div class="w-full text-center">
+                        <Tag 
+                            v-if="findPriorityLevel(slotProps.data.priority)"
+                            :severity="uiStyles.getPriorityStyle(findPriorityLevel(slotProps.data.priority)).severity"
+                            :value="uiStyles.getPriorityStyle(findPriorityLevel(slotProps.data.priority)).label"
+                            :icon="uiStyles.getPriorityStyle(findPriorityLevel(slotProps.data.priority)).icon"
+                            rounded
+                        />
+                    </div>
+                </template>
+            </Column>
+            <Column field="assignee.username" header="Исполнитель" sortable>
+                <template #body="slotProps">
+                    <div 
+                        class="flex items-center gap-2"
+                        v-tooltip.top="`${slotProps.data.assignee?.email}\n(${slotProps.data.assignee?.position?.name || ''})`"
+                    >
+                        <Avatar
+                            :image="slotProps.data.assignee?.avatar_url"
+                            shape="circle"
+                        />
+                        {{ slotProps.data.assignee.last_name + " " + slotProps.data.assignee.first_name || "—" }}
+                    </div>
+                </template>
+            </Column>
+            <Column header="">
+                <template #body="slotProps">
+                    <div class="flex">
+                        <Button class="m-1" @click="goEdit(slotProps.data.id)" icon="pi pi-pencil" severity="info" variant="text" raised rounded  />
+                        <Button class="m-1" @click="onDelete(slotProps.data.id)" icon="pi pi-trash" severity="danger" variant="text" raised rounded  />
+                    </div>
+                </template>
+            </Column>
+        </DataTable>
+    </div>
+    
+
     <div class="tasks-container">
         <h2>
             Задачи:
@@ -19,6 +98,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>Номер</th>
                     <th>Заголовок</th>
                     <th v-if="!projectName">Проект</th>
                     <th>Статус</th>
@@ -29,6 +109,7 @@
             </thead>
             <tbody>
                 <tr v-for="task in filteredTasks" :key="task.id">
+                    <td>{{ task.id }}</td>
                     <td>
                         <router-link
                             :to="{
@@ -43,7 +124,10 @@
                     <td>{{ findStatusName(task.status) }}</td>
                     <td>{{ findPriorityLevel(task.priority) }}</td>
                     <td>
-                        <Avatar :image="task.assignee.avatar_url" shape="circle" />
+                        <Avatar
+                            :image="task.assignee.avatar_url"
+                            shape="circle"
+                        />
                         {{ task.assignee.username || "—" }}
                     </td>
                     <td>
@@ -60,9 +144,10 @@
 </template>
 
 <script>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useAuthStore, useTaskStore } from "../store";
-import { useRouter } from "vue-router";
+import { useUiStyleStore } from "../store/uiStyles";
+import { useRouter, useRoute } from "vue-router";
 
 export default {
     name: "TaskList",
@@ -75,7 +160,9 @@ export default {
     setup(props) {
         const taskStore = useTaskStore();
         const authStore = useAuthStore();
+        const uiStyles = useUiStyleStore();
         const router = useRouter();
+        const route = useRoute();
         const searchTerm = ref("");
 
         const tasks = computed(() => taskStore.tasks);
@@ -106,11 +193,20 @@ export default {
             try {
                 await authStore.fetchUser();
                 await taskStore.fetchInitialData();
-                await taskStore.fetchTasks(props.projectId);
+                await taskStore.fetchTasks(
+                    route.params.projectId || props.projectId
+                );
             } catch (e) {
                 console.error(e);
             }
         });
+
+        watch(
+            () => route.params.projectId,
+            async (newId) => {
+                await taskStore.fetchTasks(newId || "all");
+            }
+        );
 
         function findStatusName(statusId) {
             const st = statuses.value.find((s) => s.id === statusId);
@@ -155,47 +251,8 @@ export default {
             goEdit,
             onDelete,
             goProjects,
+            uiStyles,
         };
     },
 };
 </script>
-
-<style scoped>
-.tasks-container {
-    max-width: 900px;
-    margin: 50px auto;
-    padding: 0 20px;
-}
-
-h2 {
-    margin-bottom: 15px;
-}
-
-.top-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.top-bar input {
-    flex-grow: 1;
-    padding: 6px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th,
-td {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-}
-
-button {
-    margin-right: 5px;
-    cursor: pointer;
-}
-</style>
