@@ -135,10 +135,6 @@ export default {
         }
 
         function isCommentAuthor(authorUsername) {
-            console.log(authStore.user)
-            console.log(authStore.user.username)
-            console.log(authorUsername)
-
             return authStore.user && authStore.user.username === authorUsername
         }
 

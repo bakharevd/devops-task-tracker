@@ -39,6 +39,7 @@ class User(AbstractUser):
         default='user',
         verbose_name='Роль'
     )
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -49,3 +50,12 @@ class User(AbstractUser):
 
     def __str(self):
         return self.email
+    
+    @property
+    def avatar_url(self):
+        if self.avatar:
+            return self.avatar.url
+        import hashlib
+        hash_email = hashlib.sha256(self.email.lower().strip().encode('utf-8')).hexdigest()
+        return f'https://www.gravatar.com/avatar/{hash_email}?s=256&d=identicon&r=PG'
+        

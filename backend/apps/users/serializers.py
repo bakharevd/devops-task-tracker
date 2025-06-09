@@ -19,11 +19,21 @@ class UserSerializer(serializers.ModelSerializer):
         write_only=True,
         source='position'
     )
+    avatar = serializers.ImageField(required=False, allow_null=True)
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'position', 'position_id', 'is_superuser']
-        read_only_fields = ['id', 'is_superuser']
+        fields = [
+            'id', 'username', 'email', 
+            'position', 'position_id', 
+            'avatar', 'avatar_url',
+            'is_superuser'
+        ]
+        read_only_fields = ['id', 'is_superuser', 'avatar_url']
+
+    def get_avatar_url(self, obj):
+        return obj.avatar_url
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
