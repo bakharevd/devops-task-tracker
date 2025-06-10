@@ -117,15 +117,28 @@ export const useTaskStore = defineStore("tasks", {
             this.currentProjectId = projectId;
         },
         async createTask(taskData) {
-            await apiClient.post("/tasks/tasks/", taskData);
+            const payload = { ...taskData };
+            if (payload.assignee) {
+                payload.assignee_id = payload.assignee;
+            }
+            delete payload.assignee;
+            await apiClient.post("/tasks/tasks/", payload);
             await this.fetchTasks(this.currentProjectId);
         },
-        async updateTask(id, taskData) {
-            await apiClient.patch(`/tasks/tasks/${id}`, taskData);
+        async updateTask(id, taskData, byIssueId = false) {
+            const url = byIssueId ? `/tasks/tasks/${id}/?by_issue_id=1` : `/tasks/tasks/${id}`;
+            const payload = { ...taskData };
+            if (payload.assignee) {
+                payload.assignee_id = payload.assignee;
+            }
+            delete payload.assignee;
+            delete payload.project_id;
+            await apiClient.patch(url, payload);
             await this.fetchTasks(this.currentProjectId);
         },
-        async deleteTask(id) {
-            await apiClient.delete(`/tasks/tasks/${id}/`);
+        async deleteTask(id, byIssueId = false) {
+            const url = byIssueId ? `/tasks/tasks/${id}/?by_issue_id=1` : `/tasks/tasks/${id}/`;
+            await apiClient.delete(url);
             await this.fetchTasks(this.currentProjectId);
         },
         async fetchProjects() {
@@ -137,22 +150,25 @@ export const useTaskStore = defineStore("tasks", {
             await this.fetchProjects();
         },
         async updateProject(id, projectData) {
-            await apiClient.patch(`/tasks/projects/${id}/`, projectData);
+            await apiClient.put(`/tasks/projects/${id}/`, projectData);
             await this.fetchProjects();
         },
         async deleteProject(id) {
             await apiClient.delete(`/tasks/projects/${id}/`);
             await this.fetchProjects();
         },
-        async fetchComments(taskId) {
-            const response = await apiClient.get(
-                `/tasks/comments/?task=${taskId}`
-            );
+        async fetchComments(taskId, byIssueId = false) {
+            const url = byIssueId ? `/tasks/comments/?task_issue_id=${taskId}` : `/tasks/comments/?task=${taskId}`;
+            const response = await apiClient.get(url);
             this.comments = response.data;
         },
         async createComment(commentData) {
             const formData = new FormData();
-            formData.append("task_id", commentData.task);
+            if (commentData.by_issue_id) {
+                formData.append("task_issue_id", commentData.task);
+            } else {
+                formData.append("task_id", commentData.task);
+            }
             formData.append("text", commentData.text);
             if (commentData.attachment) {
                 formData.append("attachment", commentData.attachment);
@@ -160,11 +176,12 @@ export const useTaskStore = defineStore("tasks", {
             await apiClient.post("/tasks/comments/", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
-            await this.fetchComments(commentData.task);
+            await this.fetchComments(commentData.task, commentData.by_issue_id);
         },
-        async deleteComment(id, taskId) {
-            await apiClient.delete(`/tasks/comments/${id}/`);
-            await this.fetchComments(taskId);
+        async deleteComment(id, taskId, byIssueId = false) {
+            const url = `/tasks/comments/${id}/`;
+            await apiClient.delete(url);
+            await this.fetchComments(taskId, byIssueId);
         },
     },
 });

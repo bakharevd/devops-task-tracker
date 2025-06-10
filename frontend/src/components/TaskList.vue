@@ -5,17 +5,30 @@
             <span v-else>Все проекты</span>
         </h1>
 
+        <div class="top-bar">
+            <button @click="goCreate">Новая задача</button>
+            <button @click="goProjects">Проекты</button>
+            <input
+                v-model="searchTerm"
+                type="text"
+                placeholder="Поиск задач..."
+            />
+        </div>
+
+        <p v-if="!filteredTasks.length && tasks.length">Задачи не найдены.</p>
+        <p v-if="!tasks.length">Нет задач для отображения.</p>
+
         <DataTable :value="filteredTasks" class="w-full max-w-7xl" responsiveLayout="scroll">
-            <Column field="id" header="ID" sortable>
+            <Column field="issue_id" header="ID" sortable>
                 <template #body="slotProps">
-                    <router-link :to="{ name: 'TaskDetail', params: { id: slotProps.data.id } }">
-                        {{ slotProps.data.id }}
+                    <router-link :to="{ name: 'TaskDetail', params: { id: slotProps.data.issue_id } }">
+                        {{ slotProps.data.issue_id }}
                     </router-link>
                 </template>
             </Column>
             <Column field="title" header="Название" sortable>
                 <template #body="slotProps">
-                    <router-link :to="{ name: 'TaskDetail', params: { id: slotProps.data.id } }">
+                    <router-link :to="{ name: 'TaskDetail', params: { id: slotProps.data.issue_id } }">
                         {{ slotProps.data.title }}
                     </router-link>
                 </template>
@@ -25,6 +38,32 @@
                     <router-link :to="{ name: 'TaskListByProject', params: { projectId: slotProps.data.project.id } }">
                         {{ slotProps.data.project.name }}
                     </router-link>
+                </template>
+            </Column>
+            <Column field="assignee.username" header="Исполнитель" sortable>
+                <template #body="slotProps">
+                    <div v-if="slotProps.data.assignee"
+                        class="flex items-center gap-2"
+                        v-tooltip.top="`${slotProps.data.assignee?.email}\n(${slotProps.data.assignee?.position?.name || ''})`"
+                    >
+                        <Avatar
+                            :image="slotProps.data.assignee?.avatar_url"
+                            shape="circle"
+                        />
+                        {{ slotProps.data.assignee?.last_name + " " + slotProps.data.assignee?.first_name || "—" }}
+                    </div>
+                </template>
+            </Column>
+            <Column field="priority" header="Приоритет" sortable>
+                <template #body="slotProps">
+                    <div class="w-full text-center">
+                        <Tag 
+                            v-if="findPriorityLevel(slotProps.data.priority)"
+                            :severity="uiStyles.getPriorityStyle(findPriorityLevel(slotProps.data.priority)).severity"
+                            :icon="uiStyles.getPriorityStyle(findPriorityLevel(slotProps.data.priority)).icon"
+                            rounded
+                        />
+                    </div>
                 </template>
             </Column>
             <Column field="status" header="Статус" sortable>
@@ -39,107 +78,15 @@
                     </div>
                 </template>
             </Column>
-            <Column field="priority" header="Приоритет" sortable>
-                <template #body="slotProps">
-                    <div class="w-full text-center">
-                        <Tag 
-                            v-if="findPriorityLevel(slotProps.data.priority)"
-                            :severity="uiStyles.getPriorityStyle(findPriorityLevel(slotProps.data.priority)).severity"
-                            :value="uiStyles.getPriorityStyle(findPriorityLevel(slotProps.data.priority)).label"
-                            :icon="uiStyles.getPriorityStyle(findPriorityLevel(slotProps.data.priority)).icon"
-                            rounded
-                        />
-                    </div>
-                </template>
-            </Column>
-            <Column field="assignee.username" header="Исполнитель" sortable>
-                <template #body="slotProps">
-                    <div 
-                        class="flex items-center gap-2"
-                        v-tooltip.top="`${slotProps.data.assignee?.email}\n(${slotProps.data.assignee?.position?.name || ''})`"
-                    >
-                        <Avatar
-                            :image="slotProps.data.assignee?.avatar_url"
-                            shape="circle"
-                        />
-                        {{ slotProps.data.assignee.last_name + " " + slotProps.data.assignee.first_name || "—" }}
-                    </div>
-                </template>
-            </Column>
             <Column header="">
                 <template #body="slotProps">
                     <div class="flex">
-                        <Button class="m-1" @click="goEdit(slotProps.data.id)" icon="pi pi-pencil" severity="info" variant="text" raised rounded  />
-                        <Button class="m-1" @click="onDelete(slotProps.data.id)" icon="pi pi-trash" severity="danger" variant="text" raised rounded  />
+                        <Button class="m-1" @click="goEdit(slotProps.data.issue_id)" icon="pi pi-pencil" severity="info" variant="text" raised rounded  />
+                        <Button class="m-1" @click="onDelete(slotProps.data.issue_id)" icon="pi pi-trash" severity="danger" variant="text" raised rounded  />
                     </div>
                 </template>
             </Column>
         </DataTable>
-    </div>
-    
-
-    <div class="tasks-container">
-        <h2>
-            Задачи:
-            <span v-if="projectName">{{ projectName }}</span>
-            <span v-else>Все проекты</span>
-        </h2>
-
-        <div class="top-bar">
-            <button @click="goCreate">Новая задача</button>
-            <button @click="goProjects">Проекты</button>
-            <input
-                v-model="searchTerm"
-                type="text"
-                placeholder="Поиск задач..."
-            />
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Номер</th>
-                    <th>Заголовок</th>
-                    <th v-if="!projectName">Проект</th>
-                    <th>Статус</th>
-                    <th>Приоритет</th>
-                    <th>Исполнитель</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="task in filteredTasks" :key="task.id">
-                    <td>{{ task.id }}</td>
-                    <td>
-                        <router-link
-                            :to="{
-                                name: 'TaskDetail',
-                                params: { id: task.id },
-                            }"
-                        >
-                            {{ task.title }}
-                        </router-link>
-                    </td>
-                    <td v-if="!projectName">{{ task.project.name }}</td>
-                    <td>{{ findStatusName(task.status) }}</td>
-                    <td>{{ findPriorityLevel(task.priority) }}</td>
-                    <td>
-                        <Avatar
-                            :image="task.assignee.avatar_url"
-                            shape="circle"
-                        />
-                        {{ task.assignee.username || "—" }}
-                    </td>
-                    <td>
-                        <button @click="goEdit(task.id)">✏️</button>
-                        <button @click="onDelete(task.id)">🗑️</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
-        <p v-if="!filteredTasks.length && tasks.length">Задачи не найдены.</p>
-        <p v-if="!tasks.length">Нет задач для отображения.</p>
     </div>
 </template>
 

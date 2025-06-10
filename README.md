@@ -59,6 +59,17 @@ docker-compose up --build
 docker-compose exec backend python manage.py createsuperuser
 ```
 
+# Тесты и покрытие
+Запустить тесты:
+```
+docker-compose exec backend pytest
+```
+
+Генерация coverage отчета:
+```
+docker-compose exec backend pytest --cov
+```
+
 # Структура проекта
 ```
 tree -a -I '.git|*.pyc|.env|node_modules|staticfiles|migrations|.venv|__pycache__|.idea' 

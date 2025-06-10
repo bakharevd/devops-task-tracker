@@ -10,27 +10,33 @@ User = get_user_model()
 class ProjectSerializer(serializers.ModelSerializer):
     members = UserSerializer(read_only=True, many=True)
     members_ids = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        many=True,
-        write_only=True,
-        source='members'
+        queryset=User.objects.all(), many=True, write_only=True, source="members"
     )
 
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'created_at', 'updated_at', 'members', 'members_ids']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = [
+            "id",
+            "name",
+            "code",
+            "description",
+            "created_at",
+            "updated_at",
+            "members",
+            "members_ids",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
     def create(self, validated_data):
-        members = validated_data.pop('members', [])
+        members = validated_data.pop("members", [])
         project = Project.objects.create(**validated_data)
         project.members.set(members)
         return project
 
     def update(self, instance, validated_data):
-        members = validated_data.pop('members', None)
-        instance.name = validated_data.get('name', instance.name)
-        instance.description = validated_data.get('description', instance.description)
+        members = validated_data.pop("members", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
         if members is not None:
             instance.members.set(members)
@@ -40,68 +46,71 @@ class ProjectSerializer(serializers.ModelSerializer):
 class StatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Status
-        fields = ['id', 'name']
+        fields = ["id", "name"]
 
 
 class PrioritySerializer(serializers.ModelSerializer):
     class Meta:
         model = Priority
-        fields = ['id', 'level']
+        fields = ["id", "level"]
 
 
 class TaskSerializer(serializers.ModelSerializer):
     creator = UserSerializer(read_only=True)
     creator_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        source='creator',
-        write_only=True,
-        required=False
+        queryset=User.objects.all(), source="creator", write_only=True, required=False
     )
 
     assignee = UserSerializer(read_only=True)
     assignee_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
-        source='assignee',
+        source="assignee",
         write_only=True,
         allow_null=True,
-        required=False
+        required=False,
     )
 
     project = ProjectSerializer(read_only=True)
     project_id = serializers.PrimaryKeyRelatedField(
-        queryset=Project.objects.all(),
-        write_only=True,
-        source='project'
+        queryset=Project.objects.all(), write_only=True, source="project", required=True
     )
-    status = serializers.PrimaryKeyRelatedField(
-        queryset=Status.objects.all()
-    )
-    priority = serializers.PrimaryKeyRelatedField(
-        queryset=Priority.objects.all()
-    )
+    status = serializers.PrimaryKeyRelatedField(queryset=Status.objects.all())
+    priority = serializers.PrimaryKeyRelatedField(queryset=Priority.objects.all())
+    issue_id = serializers.CharField(read_only=True)
 
     class Meta:
         model = Task
         fields = [
-            'id',
-            'title',
-            'description',
-            'created_at',
-            'updated_at',
-            'due_date',
-            'creator',
-            'creator_id',
-            'assignee',
-            'assignee_id',
-            'project',
-            'project_id',
-            'status',
-            'priority'
+            "id",
+            "issue_id",
+            "title",
+            "description",
+            "created_at",
+            "updated_at",
+            "due_date",
+            "creator",
+            "creator_id",
+            "assignee",
+            "assignee_id",
+            "project",
+            "project_id",
+            "status",
+            "priority",
         ]
-        read_only_fields = ['id', 'created_at', 'creator', 'project', 'assignee']
+        read_only_fields = [
+            "id",
+            "created_at",
+            "creator",
+            "project",
+            "assignee",
+            "issue_id",
+        ]
 
     def create(self, validated_data):
-        request = self.context.get('request', None)
-        if request and hasattr(request, 'user') and 'creator' not in validated_data:
-            validated_data['creator'] = request.user
+        request = self.context.get("request", None)
+        if request and hasattr(request, "user") and "creator" not in validated_data:
+            validated_data["creator"] = request.user
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        return super().update(instance, validated_data)

@@ -11,6 +11,7 @@ backend/media/
 backend/**/*.pyc
 backend/**/migrations/
 backend/.venv/
+backend/.pytest_cache/
 
 # Vue
 frontend/node_modules/

@@ -6,6 +6,7 @@
 
         <div v-else>
             <h2>Задача: {{ task.title }}</h2>
+            <p><strong>ID задачи:</strong> {{ task.issue_id }}</p>
             <p><strong>Описание:</strong> {{ task.description || '—' }}</p>
             <p><strong>Проект:</strong> {{ task.project?.name || '—' }}</p>
             <p><strong>Статус:</strong> {{ findStatusName(task.status) }}</p>
@@ -80,12 +81,10 @@ export default {
         onMounted(async () => {
             try {
                 await authStore.fetchUser()
-
-                const response = await apiClient.get(`/tasks/tasks/${taskId.value}/`)
+                const response = await apiClient.get(`/tasks/tasks/${taskId.value}/?by_issue_id=1`)
                 task.value = response.data
-
                 await taskStore.fetchInitialData()
-                await taskStore.fetchComments(taskId.value)
+                await taskStore.fetchComments(taskId.value, true)
             } catch (e) {
                 console.error('Ошибка при загрузке задачи:', e)
                 error.value = 'Не удалось загрузить задачу'
@@ -121,7 +120,8 @@ export default {
                 await taskStore.createComment({
                     task: taskId.value,
                     text: newComment.value.text,
-                    attachment: newComment.value.attachment
+                    attachment: newComment.value.attachment,
+                    by_issue_id: true
                 })
                 newComment.value.text = ''
                 newComment.value.attachment = null
@@ -140,7 +140,7 @@ export default {
 
         async function deleteComment(commentId) {
             if (confirm('Удалить комментарий?')) {
-                await taskStore.deleteComment(commentId, taskId.value)
+                await taskStore.deleteComment(commentId, taskId.value, true)
             }
         }
 

@@ -4,9 +4,9 @@ from rest_framework.routers import DefaultRouter
 from .views import UserViewSet, PositionViewSet
 
 router = DefaultRouter()
-router.register(r'positions', PositionViewSet, basename='positions')
-router.register(r'', UserViewSet, basename='users')
+router.register(r"positions", PositionViewSet, basename="positions")
+router.register(r"", UserViewSet, basename="users")
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

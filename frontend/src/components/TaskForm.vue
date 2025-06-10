@@ -2,6 +2,10 @@
     <div class="task-form-container">
         <h2>{{ isEdit ? 'Редактирование задачи' : 'Новая задача' }}</h2>
         <form @submit.prevent="onSubmit">
+            <div v-if="isEdit && form.issue_id">
+                <label>ID задачи:</label>
+                <input type="text" :value="form.issue_id" readonly />
+            </div>
             <div>
                 <label for="title">Заголовок:</label>
                 <input
@@ -24,7 +28,7 @@
 
             <div>
                 <label for="project">Проект:</label>
-                <select v-model="form.project_id" id="project" required>
+                <select v-model="form.project_id" id="project" required :disabled="isEdit">
                     <option disabled value="">-- выберите проект --</option>
                     <option
                         v-for="proj in projects"
@@ -46,13 +50,17 @@
             </div>
 
             <div>
-                <label for="assignee">Исполнитель (ID):</label>
-                <input
-                    v-model="form.assignee"
-                    type="number"
-                    id="assignee"
-                    placeholder="ID пользователя (необязательно)"
-                />
+                <label for="assignee">Исполнитель:</label>
+                <select v-model="form.assignee" id="assignee">
+                    <option :value="null">-- не назначен --</option>
+                    <option
+                        v-for="member in projectMembers"
+                        :key="member.id"
+                        :value="member.id"
+                    >
+                        {{ member.first_name }} {{ member.last_name }} ({{ member.email }})
+                    </option>
+                </select>
             </div>
 
             <div>
@@ -92,7 +100,7 @@
 </template>
 
 <script>
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useAuthStore, useTaskStore} from '../store'
 import {useRoute, useRouter} from 'vue-router'
 import apiClient from '../services/api.js'
@@ -122,31 +130,33 @@ export default {
         const priorities = computed(() => taskStore.priorities)
         const projects = computed(() => taskStore.projects)
 
+        const projectMembers = computed(() => {
+            const proj = projects.value.find(p => p.id === form.value.project_id)
+            return proj && proj.members ? proj.members : []
+        })
+
         const error = ref('')
 
         onMounted(async () => {
             try {
                 await authStore.fetchUser()
-
                 await taskStore.fetchInitialData()
-
                 if (isEdit.value) {
-                    const response = await apiClient.get(`/tasks/tasks/${taskId.value}/`)
+                    const response = await apiClient.get(`/tasks/tasks/${taskId.value}/?by_issue_id=1`)
                     const data = response.data
-
                     form.value.title = data.title || ''
                     form.value.description = data.description || ''
                     form.value.project_id = data.project?.id || ''
-                    form.value.due_date = data.due_date
-                        ? data.due_date.slice(0, 16)
-                        : ''
-                    form.value.assignee = data.assignee || null
+                    form.value.due_date = data.due_date ? data.due_date.slice(0, 16) : ''
+                    form.value.assignee = data.assignee?.id || null
                     form.value.status = data.status || ''
                     form.value.priority = data.priority || ''
+                    form.value.issue_id = data.issue_id
                 } else {
                     if (projects.value.length > 0) {
                         form.value.project_id = projects.value[0].id
                     }
+                    form.value.assignee = null
                 }
             } catch (e) {
                 console.error('Ошибка при инициализации формы:', e)
@@ -184,11 +194,10 @@ export default {
 
             try {
                 if (isEdit.value) {
-                    await taskStore.updateTask(taskId.value, payload)
+                    await taskStore.updateTask(taskId.value, payload, true)
                 } else {
                     await taskStore.createTask(payload)
                 }
-
                 router.push({
                     name: 'TaskListByProject',
                     params: {projectId: form.value.project_id}
@@ -218,7 +227,8 @@ export default {
             isEdit,
             onSubmit,
             goBack,
-            error
+            error,
+            projectMembers
         }
     }
 }

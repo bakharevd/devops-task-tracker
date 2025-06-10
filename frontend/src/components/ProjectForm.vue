@@ -40,6 +40,17 @@
                 </select>
             </div>
 
+            <div>
+                <label for="code">Код проекта:</label>
+                <input
+                    v-model="form.code"
+                    type="text"
+                    id="code"
+                    placeholder="Короткий код (например, ASD)"
+                    required
+                />
+            </div>
+
             <button type="submit">{{ isEdit ? 'Сохранить' : 'Создать' }}</button>
             <button @click="goBack" type="button">Отмена</button>
         </form>
@@ -68,7 +79,8 @@ export default {
         const form = ref({
             name: '',
             description: '',
-            members_ids: []
+            members_ids: [],
+            code: ''
         })
         const error = ref('')
         const users = computed(() => userStore.users)
@@ -85,6 +97,7 @@ export default {
                     form.value.name = data.name || ''
                     form.value.description = data.description || ''
                     form.value.members_ids = data.members.map(u => u.id)
+                    form.value.code = data.code || ''
                 }
             } catch (e) {
                 console.error('Ошибка при инициализации компонента:', e)
@@ -100,7 +113,8 @@ export default {
             const payload = {
                 name: form.value.name,
                 description: form.value.description,
-                members_ids: form.value.members_ids
+                members_ids: form.value.members_ids,
+                code: form.value.code
             }
             try {
                 if (isEdit.value) {
