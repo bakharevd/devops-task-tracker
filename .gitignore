@@ -12,6 +12,7 @@ backend/**/*.pyc
 backend/**/migrations/
 backend/.venv/
 backend/.pytest_cache/
+backend/.coverage
 
 # Vue
 frontend/node_modules/

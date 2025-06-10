@@ -1,3 +1,10 @@
+"""
+URL-конфигурация для приложения tasks.
+
+Определяет маршруты для API эндпоинтов, связанных с задачами, проектами,
+статусами, приоритетами и комментариями.
+"""
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 

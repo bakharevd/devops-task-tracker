@@ -1,3 +1,9 @@
+"""
+URL-маршруты для приложения users.
+
+Определяет маршруты для API эндпоинтов пользователей и должностей.
+"""
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 

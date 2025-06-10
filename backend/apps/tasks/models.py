@@ -4,16 +4,35 @@ from django.db import models
 
 class Project(models.Model):
     """
-    Сущность Проекты
+    Модель проекта в системе управления задачами.
+
+    Проект представляет собой контейнер для группировки связанных задач.
+    Каждый проект имеет уникальное имя и код, а также может содержать
+    множество участников (пользователей).
     """
 
-    name = models.CharField(max_length=150, unique=True)
-    code = models.CharField(max_length=16, unique=True)
-    description = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    name = models.CharField(
+        max_length=150,
+        unique=True,
+        help_text="Название проекта (максимум 150 символов)",
+    )
+    code = models.CharField(
+        max_length=16,
+        unique=True,
+        help_text="Уникальный код проекта (максимум 16 символов)",
+    )
+    description = models.TextField(blank=True, help_text="Подробное описание проекта")
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Дата и время создания проекта"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="Дата и время последнего обновления проекта"
+    )
     members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL, related_name="projects", blank=True
+        settings.AUTH_USER_MODEL,
+        related_name="projects",
+        blank=True,
+        help_text="Участники проекта",
     )
 
     class Meta:
@@ -25,6 +44,10 @@ class Project(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
+        """
+        Переопределение метода save для автоматического преобразования
+        кода проекта в верхний регистр при сохранении.
+        """
         if self.code:
             self.code = self.code.upper()
         super().save(*args, **kwargs)
@@ -32,10 +55,15 @@ class Project(models.Model):
 
 class Status(models.Model):
     """
-    Справочник статусов
+    Модель статуса задачи.
+
+    Определяет возможные состояния задачи в системе (например, "Новая",
+    "В работе", "Завершена" и т.д.).
     """
 
-    name = models.CharField(max_length=50, unique=True)
+    name = models.CharField(
+        max_length=50, unique=True, help_text="Название статуса (максимум 50 символов)"
+    )
 
     class Meta:
         verbose_name = "Статус задачи"
@@ -47,10 +75,17 @@ class Status(models.Model):
 
 class Priority(models.Model):
     """
-    Справочник приоритетов
+    Модель приоритета задачи.
+
+    Определяет уровни важности задачи (например, "Низкий", "Средний",
+    "Высокий", "Критический").
     """
 
-    level = models.CharField(max_length=50, unique=True)
+    level = models.CharField(
+        max_length=50,
+        unique=True,
+        help_text="Уровень приоритета (максимум 50 символов)",
+    )
 
     class Meta:
         verbose_name = "Приоритет задачи"
@@ -62,18 +97,38 @@ class Priority(models.Model):
 
 class Task(models.Model):
     """
-    Сущность Задачи
+    Модель задачи в системе.
+
+    Представляет собой единицу работы, которая должна быть выполнена
+    в рамках проекта. Задача имеет уникальный идентификатор, создается
+    пользователем и может быть назначена другому пользователю.
     """
 
-    issue_id = models.CharField(max_length=32, unique=True, editable=False)
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    due_date = models.DateTimeField(null=True, blank=True)
+    issue_id = models.CharField(
+        max_length=32,
+        unique=True,
+        editable=False,
+        help_text="Уникальный идентификатор задачи в формате PROJECT-XXX",
+    )
+    title = models.CharField(
+        max_length=200, help_text="Название задачи (максимум 200 символов)"
+    )
+    description = models.TextField(blank=True, help_text="Подробное описание задачи")
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Дата и время создания задачи"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="Дата и время последнего обновления задачи"
+    )
+    due_date = models.DateTimeField(
+        null=True, blank=True, help_text="Планируемая дата завершения задачи"
+    )
 
     creator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_tasks"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_tasks",
+        help_text="Пользователь, создавший задачу",
     )
     assignee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -81,13 +136,27 @@ class Task(models.Model):
         null=True,
         blank=True,
         related_name="assigned_tasks",
+        help_text="Пользователь, назначенный на задачу",
     )
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="tasks")
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="tasks",
+        help_text="Проект, к которому относится задача",
+    )
     status = models.ForeignKey(
-        Status, on_delete=models.SET_DEFAULT, default=1, related_name="tasks"
+        Status,
+        on_delete=models.SET_DEFAULT,
+        default=1,
+        related_name="tasks",
+        help_text="Текущий статус задачи",
     )
     priority = models.ForeignKey(
-        Priority, on_delete=models.SET_DEFAULT, default=1, related_name="tasks"
+        Priority,
+        on_delete=models.SET_DEFAULT,
+        default=1,
+        related_name="tasks",
+        help_text="Приоритет задачи",
     )
 
     class Meta:
@@ -99,6 +168,10 @@ class Task(models.Model):
         return f"{self.title} ({self.status.name})"
 
     def save(self, *args, **kwargs):
+        """
+        Переопределение метода save для автоматической генерации
+        уникального идентификатора задачи при создании.
+        """
         if not self.issue_id:
             project_code = self.project.code
             last_task = (
@@ -117,17 +190,38 @@ class Task(models.Model):
 
 class Comment(models.Model):
     """
-    Комментарии к задаче с вложениями
+    Модель комментария к задаче.
+
+    Позволяет пользователям оставлять комментарии к задачам и
+    прикреплять файлы. Каждый комментарий связан с конкретной
+    задачей и имеет автора.
     """
 
-    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="comments")
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comments"
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        help_text="Задача, к которой относится комментарий",
     )
-    text = models.TextField()
-    attachment = models.FileField(upload_to="task_attachments/", null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        help_text="Автор комментария",
+    )
+    text = models.TextField(help_text="Текст комментария")
+    attachment = models.FileField(
+        upload_to="task_attachments/",
+        null=True,
+        blank=True,
+        help_text="Прикрепленный файл",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Дата и время создания комментария"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="Дата и время последнего обновления комментария"
+    )
 
     class Meta:
         verbose_name = "Комментарий"

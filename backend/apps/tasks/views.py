@@ -16,28 +16,65 @@ from .serializers_comment import CommentSerializer
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet для управления проектами.
+
+    Предоставляет CRUD операции для проектов с учетом прав доступа:
+    - Просмотр списка проектов и деталей доступен всем аутентифицированным пользователям
+    - Создание, изменение и удаление проектов доступно только администраторам
+    - Пользователи видят только те проекты, в которых они являются участниками
+    """
+
     serializer_class = ProjectSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["name", "description", "members__username"]
 
     def get_queryset(self):
+        """
+        Возвращает queryset проектов с учетом прав доступа пользователя.
+
+        Returns:
+            QuerySet: Список проектов, доступных пользователю
+        """
         user = self.request.user
         if user.is_superuser or user.is_staff:
             return Project.objects.prefetch_related("members").all()
         return Project.objects.filter(members=user).prefetch_related("members")
 
     def get_permissions(self):
+        """
+        Определяет права доступа в зависимости от действия.
+
+        Returns:
+            list: Список классов разрешений
+        """
         if self.action in ["list", "retrieve"]:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
 
 
 class TaskViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet для управления задачами.
+
+    Предоставляет CRUD операции для задач с учетом прав доступа:
+    - Просмотр списка задач и деталей доступен всем аутентифицированным пользователям
+    - Создание задач доступно всем аутентифицированным пользователям
+    - Изменение и удаление задач доступно создателю задачи
+    - Пользователи видят задачи из проектов, в которых они участвуют
+    """
+
     serializer_class = TaskSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["title", "description"]
 
     def get_queryset(self):
+        """
+        Возвращает queryset задач с учетом прав доступа и фильтрации по проекту.
+
+        Returns:
+            QuerySet: Список задач, доступных пользователю
+        """
         user = self.request.user
         qs = Task.objects.select_related(
             "creator", "assignee", "status", "priority", "project"
@@ -57,6 +94,12 @@ class TaskViewSet(viewsets.ModelViewSet):
         return qs
 
     def get_object(self):
+        """
+        Получает объект задачи по ID или issue_id.
+
+        Returns:
+            Task: Объект задачи
+        """
         by_issue_id = self.request.query_params.get("by_issue_id")
         if by_issue_id:
             issue_id = self.kwargs.get("pk")
@@ -66,6 +109,17 @@ class TaskViewSet(viewsets.ModelViewSet):
         return super().get_object()
 
     def update(self, request, *args, **kwargs):
+        """
+        Обновляет задачу с учетом возможности обновления по issue_id.
+
+        Args:
+            request: HTTP запрос
+            *args: Дополнительные аргументы
+            **kwargs: Дополнительные именованные аргументы
+
+        Returns:
+            Response: Ответ с обновленными данными задачи
+        """
         mutable_data = request.data.copy()
         by_issue_id = request.query_params.get("by_issue_id")
         if by_issue_id:
@@ -80,6 +134,17 @@ class TaskViewSet(viewsets.ModelViewSet):
         return super().update(request._request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
+        """
+        Удаляет задачу с учетом возможности удаления по issue_id.
+
+        Args:
+            request: HTTP запрос
+            *args: Дополнительные аргументы
+            **kwargs: Дополнительные именованные аргументы
+
+        Returns:
+            Response: Пустой ответ со статусом 204
+        """
         by_issue_id = request.query_params.get("by_issue_id")
         if by_issue_id:
             instance = self.get_object()
@@ -88,35 +153,84 @@ class TaskViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def get_permissions(self):
+        """
+        Определяет права доступа в зависимости от действия.
+
+        Returns:
+            list: Список классов разрешений
+        """
         if self.action in ["list", "retrieve", "create"]:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
+        """
+        Создает новую задачу.
+
+        Args:
+            serializer: Сериализатор с данными задачи
+        """
         serializer.save()
 
 
 class StatusViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet для управления статусами задач.
+
+    Предоставляет CRUD операции для статусов с учетом прав доступа:
+    - Просмотр списка статусов и деталей доступен всем аутентифицированным пользователям
+    - Создание, изменение и удаление статусов доступно только администраторам
+    """
+
     queryset = Status.objects.all()
     serializer_class = StatusSerializer
 
     def get_permissions(self):
+        """
+        Определяет права доступа в зависимости от действия.
+
+        Returns:
+            list: Список классов разрешений
+        """
         if self.action in ["list", "retrieve"]:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
 
 
 class PriorityViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet для управления приоритетами задач.
+
+    Предоставляет CRUD операции для приоритетов с учетом прав доступа:
+    - Просмотр списка приоритетов и деталей доступен всем аутентифицированным пользователям
+    - Создание, изменение и удаление приоритетов доступно только администраторам
+    """
+
     queryset = Priority.objects.all()
     serializer_class = PrioritySerializer
 
     def get_permissions(self):
+        """
+        Определяет права доступа в зависимости от действия.
+
+        Returns:
+            list: Список классов разрешений
+        """
         if self.action in ["list", "retrieve"]:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
 
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet для управления комментариями к задачам.
+
+    Предоставляет CRUD операции для комментариев с учетом прав доступа:
+    - Просмотр списка комментариев, деталей и создание доступно всем аутентифицированным пользователям
+    - Изменение и удаление комментариев доступно только автору комментария или администратору
+    - Поддерживает загрузку файлов в комментариях
+    """
+
     queryset = Comment.objects.select_related("author", "task").all()
     serializer_class = CommentSerializer
     parser_classes = [MultiPartParser, FormParser]
@@ -124,11 +238,23 @@ class CommentViewSet(viewsets.ModelViewSet):
     search_fields = ["text"]
 
     def get_permissions(self):
+        """
+        Определяет права доступа в зависимости от действия.
+
+        Returns:
+            list: Список классов разрешений
+        """
         if self.action in ["list", "retrieve", "create"]:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), IsAuthorOrAdmin()]
 
     def get_queryset(self):
+        """
+        Возвращает queryset комментариев с учетом фильтрации по задаче.
+
+        Returns:
+            QuerySet: Список комментариев, отфильтрованных по параметрам запроса
+        """
         queryset = super().get_queryset()
         task_id = self.request.query_params.get("task")
         task_issue_id = self.request.query_params.get("task_issue_id")
