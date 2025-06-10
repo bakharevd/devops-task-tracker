@@ -90,6 +90,8 @@ export const useAuthStore = defineStore("auth", {
 export const useTaskStore = defineStore("tasks", {
     state: () => ({
         tasks: [],
+        openTasks: [],
+        closedTasks: [],
         statuses: [],
         priorities: [],
         projects: [],
@@ -114,32 +116,49 @@ export const useTaskStore = defineStore("tasks", {
                 `/tasks/tasks/?project=${projectId}`
             );
             this.tasks = response.data;
+            await this.fetchClosedTasks(projectId);
+            await this.fetchOpenTasks(projectId);
             this.currentProjectId = projectId;
+        },
+        async fetchOpenTasks(projectId = "all") {
+            const response = await apiClient.get(
+                `/tasks/tasks/?project=${projectId}&not_status=4`
+            );
+            this.openTasks = response.data;
+        },
+        async fetchClosedTasks(projectId = "all") {
+            const response = await apiClient.get(
+                `/tasks/tasks/?project=${projectId}&status=4`
+            );
+            this.closedTasks = response.data;
         },
         async createTask(taskData) {
             const payload = { ...taskData };
-            if (payload.assignee) {
-                payload.assignee_id = payload.assignee;
-            }
-            delete payload.assignee;
-            await apiClient.post("/tasks/tasks/", payload);
+            if (payload.due_date)
+                payload.due_date = new Date(payload.due_date).toISOString();
+            const response = await apiClient.post("/tasks/tasks/", payload);
             await this.fetchTasks(this.currentProjectId);
+            return response;
         },
         async updateTask(id, taskData, byIssueId = false) {
-            const url = byIssueId ? `/tasks/tasks/${id}/?by_issue_id=1` : `/tasks/tasks/${id}`;
+            const url = byIssueId
+                ? `/tasks/tasks/${id}/?by_issue_id=1`
+                : `/tasks/tasks/${id}/`;
             const payload = { ...taskData };
-            if (payload.assignee) {
-                payload.assignee_id = payload.assignee;
-            }
-            delete payload.assignee;
-            delete payload.project_id;
+            if (payload.due_date)
+                payload.due_date = new Date(payload.due_date).toISOString();
             await apiClient.patch(url, payload);
             await this.fetchTasks(this.currentProjectId);
         },
         async deleteTask(id, byIssueId = false) {
-            const url = byIssueId ? `/tasks/tasks/${id}/?by_issue_id=1` : `/tasks/tasks/${id}/`;
-            await apiClient.delete(url);
-            await this.fetchTasks(this.currentProjectId);
+            try {
+                const url = `/tasks/tasks/${id}/?by_issue_id=1`;
+                await apiClient.delete(url);
+                await this.fetchTasks(this.currentProjectId);
+            } catch (error) {
+                console.error("Ошибка при удалении задачи:", error);
+                throw error;
+            }
         },
         async fetchProjects() {
             const response = await apiClient.get("/tasks/projects/");
@@ -158,25 +177,41 @@ export const useTaskStore = defineStore("tasks", {
             await this.fetchProjects();
         },
         async fetchComments(taskId, byIssueId = false) {
-            const url = byIssueId ? `/tasks/comments/?task_issue_id=${taskId}` : `/tasks/comments/?task=${taskId}`;
-            const response = await apiClient.get(url);
-            this.comments = response.data;
+            try {
+                const url = byIssueId
+                    ? `/tasks/comments/?task_issue_id=${taskId}`
+                    : `/tasks/comments/?task=${taskId}`;
+                const response = await apiClient.get(url);
+                this.comments = response.data;
+            } catch (error) {
+                console.error("Ошибка при получении комментариев:", error);
+                throw error;
+            }
         },
         async createComment(commentData) {
-            const formData = new FormData();
-            if (commentData.by_issue_id) {
-                formData.append("task_issue_id", commentData.task);
-            } else {
-                formData.append("task_id", commentData.task);
+            try {
+                const formData = new FormData();
+                if (commentData.by_issue_id) {
+                    formData.append("task_issue_id", commentData.task);
+                } else {
+                    formData.append("task", commentData.task);
+                }
+                formData.append("text", commentData.text);
+                if (commentData.attachment) {
+                    formData.append("attachment", commentData.attachment);
+                }
+
+                await apiClient.post("/tasks/comments/", formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                await this.fetchComments(
+                    commentData.task,
+                    commentData.by_issue_id
+                );
+            } catch (error) {
+                console.error("Ошибка при создании комментария:", error);
+                throw error;
             }
-            formData.append("text", commentData.text);
-            if (commentData.attachment) {
-                formData.append("attachment", commentData.attachment);
-            }
-            await apiClient.post("/tasks/comments/", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
-            await this.fetchComments(commentData.task, commentData.by_issue_id);
         },
         async deleteComment(id, taskId, byIssueId = false) {
             const url = `/tasks/comments/${id}/`;

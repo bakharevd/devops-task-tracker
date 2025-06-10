@@ -80,6 +80,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             "creator", "assignee", "status", "priority", "project"
         ).all()
         project_param = self.request.query_params.get("project")
+        not_project_param = self.request.query_params.get("not_project")
         if project_param:
             if project_param == "all":
                 pass
@@ -89,6 +90,46 @@ class TaskViewSet(viewsets.ModelViewSet):
                     qs = qs.filter(project_id=proj_id)
                 except (ValueError, TypeError):
                     pass
+        elif not_project_param:
+            try:
+                proj_id = int(not_project_param)
+                qs = qs.exclude(project_id=proj_id)
+            except (ValueError, TypeError):
+                pass
+
+        status_param = self.request.query_params.get("status")
+        not_status_param = self.request.query_params.get("not_status")
+        if status_param:
+            try:
+                status_id = int(status_param)
+                qs = qs.filter(status_id=status_id)
+            except (ValueError, TypeError):
+                pass
+        elif not_status_param:
+            try:
+                status_id = int(not_status_param)
+                qs = qs.exclude(status_id=status_id)
+            except (ValueError, TypeError):
+                pass
+
+        assignee_param = self.request.query_params.get("assignee")
+        not_assignee_param = self.request.query_params.get("not_assignee")
+        if assignee_param:
+            try:
+                assignee_id = int(assignee_param)
+                qs = qs.filter(assignee_id=assignee_id)
+            except (ValueError, TypeError):
+                pass
+        elif not_assignee_param:
+            try:
+                assignee_id = int(not_assignee_param)
+                qs = qs.exclude(assignee_id=assignee_id)
+            except (ValueError, TypeError):
+                pass
+
+        if self.request.query_params.get("unassigned") == "true":
+            qs = qs.filter(assignee__isnull=True)
+
         if not (user.is_superuser or user.is_staff):
             qs = qs.filter(project__members=user) | qs.filter(creator=user)
         return qs

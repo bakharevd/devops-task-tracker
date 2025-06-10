@@ -1,5 +1,5 @@
 <template>
-    <div class="card" v-if="isAuthorized">
+    <div class="card p-2" v-if="isAuthorized">
         <MenuBar :model="menuItems">
             <template #start>
                 <Image src="/logo.png" alt="DevOps Task Tracker" width="64" />

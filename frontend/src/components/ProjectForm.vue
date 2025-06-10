@@ -1,68 +1,116 @@
 <template>
-    <div class="project-form-container">
-        <h2>{{ isEdit ? 'Редактирование проекта' : 'Новый проект' }}</h2>
-        <form @submit.prevent="onSubmit">
-            <div>
-                <label for="name">Название проекта:</label>
-                <input
-                    v-model="form.name"
-                    type="text"
-                    id="name"
-                    placeholder="Введите название"
-                    required
-                />
+    <div class="min-h-screen flex flex-col items-center px-4 inset-x-0 top-0">
+        <div class="card w-full max-w-3xl mt-8">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-4">
+                    <Button
+                        @click="goBack"
+                        icon="pi pi-arrow-left"
+                        severity="secondary"
+                        text
+                        rounded
+                        raised
+                    />
+                    <h2 class="text-2xl font-semibold m-0">
+                        {{ isEdit ? 'Редактирование проекта' : 'Новый проект' }}
+                    </h2>
+                </div>
             </div>
 
-            <div>
-                <label for="description">Описание:</label>
-                <textarea
-                    v-model="form.description"
-                    id="description"
-                    placeholder="Опционально: описание проекта"
-                ></textarea>
-            </div>
+            <form @submit.prevent="onSubmit" class="flex flex-col gap-6">
+                <div class="field">
+                    <label for="name" class="block text-sm font-medium text-gray-600 mb-1">Название проекта</label>
+                    <InputText
+                        v-model="form.name"
+                        id="name"
+                        placeholder="Введите название"
+                        class="w-full"
+                        required
+                    />
+                </div>
 
-            <div>
-                <label for="members">Участники проекта (для выбора нескольких элементов удерживайте Ctrl):</label>
-                <select
-                    v-model="form.members_ids"
-                    id="members"
-                    multiple
-                    size="5"
-                >
-                    <option
-                        v-for="user in users"
-                        :key="user.id"
-                        :value="user.id"
+                <div class="field">
+                    <label for="description" class="block text-sm font-medium text-gray-600 mb-1">Описание</label>
+                    <Editor
+                        v-model="form.description"
+                        editorStyle="height: 200px"
+                        :pt="{
+                            toolbar: { class: 'border-none' },
+                            content: { class: 'border border-gray-300 rounded-lg' }
+                        }"
+                    />
+                </div>
+
+                <div class="field">
+                    <label for="members" class="block text-sm font-medium text-gray-600 mb-1">Участники проекта</label>
+                    <MultiSelect
+                        v-model="form.members_ids"
+                        :options="users"
+                        optionLabel="fullName"
+                        optionValue="id"
+                        placeholder="Выберите участников"
+                        class="w-full"
+                        :pt="{
+                            root: { class: 'w-full' },
+                            label: { class: 'flex items-center gap-2' }
+                        }"
                     >
-                        {{ user.username }} ({{ user.email }})
-                    </option>
-                </select>
-            </div>
+                        <template #option="slotProps">
+                            <div class="flex items-center gap-2">
+                                <Avatar
+                                    :image="slotProps.option.avatar_url"
+                                    shape="circle"
+                                    size="small"
+                                />
+                                <div>
+                                    <div>{{ slotProps.option.fullName }}</div>
+                                    <div class="text-sm text-gray-500">{{ slotProps.option.email }}</div>
+                                </div>
+                            </div>
+                        </template>
+                    </MultiSelect>
+                </div>
 
-            <div>
-                <label for="code">Код проекта:</label>
-                <input
-                    v-model="form.code"
-                    type="text"
-                    id="code"
-                    placeholder="Короткий код (например, ASD)"
-                    required
-                />
-            </div>
+                <div class="field">
+                    <label for="code" class="block text-sm font-medium text-gray-600 mb-1">Код проекта</label>
+                    <InputText
+                        v-model="form.code"
+                        id="code"
+                        placeholder="Короткий код (например, ASD)"
+                        class="w-full"
+                        required
+                    />
+                </div>
 
-            <button type="submit">{{ isEdit ? 'Сохранить' : 'Создать' }}</button>
-            <button @click="goBack" type="button">Отмена</button>
-        </form>
-        <p v-if="error" class="error">{{ error }}</p>
+                <div class="flex justify-end gap-2 mt-4">
+                    <Button
+                        type="button"
+                        @click="goBack"
+                        label="Отмена"
+                        severity="secondary"
+                        outlined
+                    />
+                    <Button
+                        type="submit"
+                        :label="isEdit ? 'Сохранить' : 'Создать'"
+                        severity="success"
+                        :loading="loading"
+                    />
+                </div>
+            </form>
+
+            <Message v-if="error" severity="error" :closable="false" class="mt-4">
+                {{ error }}
+            </Message>
+        </div>
     </div>
 </template>
 
 <script>
-import {computed, onMounted, ref} from 'vue'
-import {useAuthStore, useTaskStore, useUserStore} from '../store'
-import {useRoute, useRouter} from 'vue-router'
-import apiClient from "../services/api";
+import { computed, onMounted, ref } from 'vue'
+import { useAuthStore, useTaskStore, useUserStore } from '../store'
+import { useRoute, useRouter } from 'vue-router'
+import apiClient from "../services/api"
 
 export default {
     name: 'ProjectForm',
@@ -83,10 +131,18 @@ export default {
             code: ''
         })
         const error = ref('')
-        const users = computed(() => userStore.users)
+        const loading = ref(false)
+
+        const users = computed(() => 
+            userStore.users.map(user => ({
+                ...user,
+                fullName: `${user.last_name} ${user.first_name}`
+            }))
+        )
 
         onMounted(async () => {
             try {
+                loading.value = true
                 await authStore.fetchUser()
                 await userStore.fetchUsers()
                 await taskStore.fetchProjects()
@@ -102,6 +158,8 @@ export default {
             } catch (e) {
                 console.error('Ошибка при инициализации компонента:', e)
                 error.value = 'Не удалось загрузить данные формы'
+            } finally {
+                loading.value = false
             }
         })
 
@@ -110,6 +168,13 @@ export default {
                 error.value = 'Укажите название проекта'
                 return
             }
+            if (!form.value.code.trim()) {
+                error.value = 'Укажите код проекта'
+                return
+            }
+
+            loading.value = true
+            error.value = ''
             const payload = {
                 name: form.value.name,
                 description: form.value.description,
@@ -126,11 +191,13 @@ export default {
             } catch (err) {
                 console.error('Ошибка при сохранении проекта:', err)
                 error.value = 'Не удалось сохранить проект'
+            } finally {
+                loading.value = false
             }
         }
 
         function goBack() {
-            router.push({name: 'ProjectList'})
+            router.push({ name: 'ProjectList' })
         }
 
         return {
@@ -140,43 +207,17 @@ export default {
             onSubmit,
             goBack,
             error,
+            loading
         }
     }
 }
 </script>
 
 <style scoped>
-.project-form-container {
-    max-width: 500px;
-    margin: 50px auto;
-    padding: 0 20px;
-}
-
-.project-form-container div {
-    margin-bottom: 15px;
-}
-
-.project-form-container input,
-.project-form-container select,
-.project-form-container textarea {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-}
-
-select[multiple] {
-    height: 120px;
-}
-
-button {
-    margin-right: 10px;
-    padding: 6px 12px;
-    cursor: pointer;
-}
-
-.error {
-    color: red;
-    margin-top: 10px;
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 </style>
 
