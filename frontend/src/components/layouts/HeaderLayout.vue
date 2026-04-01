@@ -119,6 +119,11 @@ export default {
 
         const menuItems = computed(() => [
             {
+                label: "Мои задачи",
+                icon: "pi pi-user",
+                route: "/tasks/",
+            },
+            {
                 label: "Все задачи",
                 icon: "pi pi-home",
                 route: "/tasks/",
