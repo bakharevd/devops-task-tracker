@@ -45,6 +45,13 @@ const routes = [
         props: {projectId: 'all'}
     },
     {
+        path: '/my-tasks',
+        name: 'MyTasks',
+        component: TaskList,
+        meta: {requiresAuth: true},
+        props: {projectId: 'all', myTasks: true}
+    },
+    {
         path: '/tasks/new',
         name: 'TaskCreate',
         component: TaskForm,

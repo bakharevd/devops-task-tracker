@@ -74,11 +74,7 @@ export const useAuthStore = defineStore("auth", {
                 const formData = new FormData();
                 formData.append("avatar", file);
 
-                await apiClient.patch("/users/me/", formData, {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                });
+                await apiClient.patch("/users/me/", formData);
                 await this.fetchUser();
             } catch (error) {
                 throw error;
@@ -111,24 +107,27 @@ export const useTaskStore = defineStore("tasks", {
             this.priorities = prioritiesRes.data;
             this.projects = projectsRes.data;
         },
-        async fetchTasks(projectId = "all") {
+        async fetchTasks(projectId = "all", assigneeId = null) {
+            const params = `project=${projectId}${assigneeId ? `&assignee=${assigneeId}` : ""}`;
             const response = await apiClient.get(
-                `/tasks/tasks/?project=${projectId}`
+                `/tasks/tasks/?${params}`
             );
             this.tasks = response.data;
-            await this.fetchClosedTasks(projectId);
-            await this.fetchOpenTasks(projectId);
+            await this.fetchClosedTasks(projectId, assigneeId);
+            await this.fetchOpenTasks(projectId, assigneeId);
             this.currentProjectId = projectId;
         },
-        async fetchOpenTasks(projectId = "all") {
+        async fetchOpenTasks(projectId = "all", assigneeId = null) {
+            const params = `project=${projectId}&not_status=4${assigneeId ? `&assignee=${assigneeId}` : ""}`;
             const response = await apiClient.get(
-                `/tasks/tasks/?project=${projectId}&not_status=4`
+                `/tasks/tasks/?${params}`
             );
             this.openTasks = response.data;
         },
-        async fetchClosedTasks(projectId = "all") {
+        async fetchClosedTasks(projectId = "all", assigneeId = null) {
+            const params = `project=${projectId}&status=4${assigneeId ? `&assignee=${assigneeId}` : ""}`;
             const response = await apiClient.get(
-                `/tasks/tasks/?project=${projectId}&status=4`
+                `/tasks/tasks/?${params}`
             );
             this.closedTasks = response.data;
         },
@@ -201,9 +200,7 @@ export const useTaskStore = defineStore("tasks", {
                     formData.append("attachment", commentData.attachment);
                 }
 
-                await apiClient.post("/tasks/comments/", formData, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                });
+                await apiClient.post("/tasks/comments/", formData);
                 await this.fetchComments(
                     commentData.task,
                     commentData.by_issue_id

@@ -96,6 +96,22 @@ export default {
             userMenu.value.toggle(event);
         };
 
+        const openAdminPanel = async () => {
+            const token = localStorage.getItem("access_token");
+            if (!token) return;
+            // Fetch с JWT создаёт Django-сессию (cookie sessionid)
+            // redirect: "follow" позволяет fetch пройти по редиректу
+            // credentials: "include" сохраняет session cookie в браузере
+            await fetch("/api/admin-login/", {
+                method: "GET",
+                headers: { Authorization: `Bearer ${token}` },
+                credentials: "include",
+                redirect: "follow",
+            });
+            // Сессия создана, открываем админку — Django уже узнает пользователя
+            window.open("/admin/", "_blank");
+        };
+
         const maxProjectToShow = 10;
 
         const projectSubItems = computed(() => {
@@ -121,12 +137,12 @@ export default {
             {
                 label: "Мои задачи",
                 icon: "pi pi-user",
-                route: "/tasks/",
+                route: "/my-tasks",
             },
             {
                 label: "Все задачи",
                 icon: "pi pi-home",
-                route: "/tasks/",
+                route: "/tasks",
             },
             {
                 label: "Проекты",
@@ -136,8 +152,7 @@ export default {
             {
                 label: "Админ-панель",
                 icon: "pi pi-wrench",
-                url: "/admin/",
-                target: "_blank",
+                command: openAdminPanel,
                 visible: isAdmin.value,
             },
         ]);

@@ -263,6 +263,10 @@ export default {
             type: String,
             default: "all",
         },
+        myTasks: {
+            type: Boolean,
+            default: false,
+        },
     },
     setup(props) {
         const taskStore = useTaskStore();
@@ -282,6 +286,7 @@ export default {
         const projects = computed(() => taskStore.projects);
 
         const projectName = computed(() => {
+            if (props.myTasks) return "Мои задачи";
             if (props.projectId === "all") return null;
             const p = projects.value.find(
                 (pr) => pr.id === Number(props.projectId)
@@ -367,8 +372,10 @@ export default {
                 loading.value = true;
                 await authStore.fetchUser();
                 await taskStore.fetchInitialData();
+                const assigneeId = props.myTasks ? authStore.user?.id : null;
                 await taskStore.fetchTasks(
-                    route.params.projectId || props.projectId
+                    route.params.projectId || props.projectId,
+                    assigneeId
                 );
             } catch (e) {
                 console.error(e);
@@ -378,11 +385,13 @@ export default {
         });
 
         watch(
-            () => route.params.projectId,
-            async (newId) => {
+            () => [route.params.projectId, route.name],
+            async ([newId]) => {
                 try {
                     loading.value = true;
-                    await taskStore.fetchTasks(newId || "all");
+                    const isMyTasks = route.name === "MyTasks";
+                    const assigneeId = isMyTasks ? authStore.user?.id : null;
+                    await taskStore.fetchTasks(newId || "all", assigneeId);
                 } catch (e) {
                     console.error(e);
                 } finally {

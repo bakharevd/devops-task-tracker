@@ -275,9 +275,9 @@
                             />
                             <FileUpload
                                 mode="basic"
-                                :auto="true"
+                                :auto="false"
                                 accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar,.7z,.mov,.mp3,.wav"
-                                :maxFileSize="10000000"
+                                :maxFileSize="20000000"
                                 @select="onFileChanged"
                                 chooseIcon="pi pi-paperclip"
                                 chooseLabel="Прикрепить файл"
@@ -390,9 +390,7 @@ export default {
                     formData.append("attachment", newComment.value.attachment);
                 }
 
-                await apiClient.post("/tasks/comments/", formData, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                });
+                await apiClient.post("/tasks/comments/", formData);
 
                 newComment.value = { text: "", attachment: null };
                 await taskStore.fetchComments(taskId.value, true);
